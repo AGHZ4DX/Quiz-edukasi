@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz Galaksi</title>
+<style>
+  :root {
+    --bg: #070a1a; --surface: rgba(16, 21, 50, 0.84); --ink: #eef0fb; --muted: #9aa3c7;
+    --accent: #8f7bff; --accent2: #4fd1ff; --accent-ink: #0a0c1f;
+    --line: rgba(143, 123, 255, 0.3); --field: rgba(7, 10, 26, 0.7);
+    --danger: #ff8a80; --ok: #6fd3a0;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  body[data-m="mat"] { --accent: #5b8cff; }
+  body[data-m="ipa"] { --accent: #3fcf8e; }
+  body[data-m="ips"] { --accent: #f0b84b; }
+  body[data-m="eng"] { --accent: #ff7ab8; }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font);
+    font-size: 16px; line-height: 1.5; min-height: 100vh;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  [hidden] { display: none !important; }
+  #galaxy { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 24px 16px 96px; }
+  h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(2rem, 7vw, 3rem); font-weight: 800; }
+  h2 { font-size: 1.25rem; font-weight: 800; }
+  h3 { font-size: 1.05rem; font-weight: 700; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .center { text-align: center; }
+  .glow {
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px;
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+
+  pass {
+    display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700; letter-spacing: 0.18em; color: var(--accent2); background: var(--field);
+    border: 1px dashed var(--accent2); border-radius: 8px; padding: 2px 10px;
+  }
+  pass::before { content: "<pass>"; color: var(--muted); font-weight: 400; letter-spacing: 0; font-size: 0.75em; margin-right: 8px; }
+  pass::after { content: "</pass>"; color: var(--muted); font-weight: 400; letter-spacing: 0; font-size: 0.75em; margin-left: 8px; }
+  .kode-besar { margin: 14px 0; text-align: center; }
+  .kode-besar pass { font-size: 1.5rem; padding: 8px 14px; }
+
+  label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 6px; }
+  .field { margin-bottom: 14px; }
+  input[type="text"] {
+    width: 100%; font: inherit; color: var(--ink); background: var(--field);
+    border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px;
+    transition: border-color 0.2s;
+  }
+  input.input-error { border-color: var(--danger); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 11px 16px;
+    border: 1px solid var(--line); background: transparent; color: var(--ink);
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.full { width: 100%; }
+  .btn.small { padding: 6px 12px; font-size: 0.85rem; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .msg { min-height: 1.4em; font-size: 0.92rem; margin: 2px 0 12px; }
+  .msg.err { color: var(--danger); }
+  .msg.ok { color: var(--ok); }
+  .hint { font-size: 0.88rem; color: var(--muted); margin-top: 14px; }
+  .row2 { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  #s-login { max-width: 440px; margin: 0 auto; padding-top: 5vh; display: grid; gap: 22px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .tab {
+    font: inherit; font-weight: 600; background: none; border: 0; color: var(--muted);
+    padding: 10px 14px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .lbl { font-weight: 600; font-size: 0.92rem; color: var(--muted); }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+  .seg-btn {
+    font: inherit; font-weight: 600; cursor: pointer; color: var(--ink); background: var(--field);
+    border: 1px solid var(--line); border-radius: 99px; padding: 8px 16px;
+  }
+  .seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .mapel-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 16px; }
+  @media (min-width: 620px) { .mapel-grid { grid-template-columns: repeat(4, 1fr); } }
+  .mapel-btn { display: block; width: 100%; text-align: center; cursor: pointer; color: var(--ink); font: inherit; padding: 14px 10px; }
+  .mapel-btn:hover { border-color: var(--accent2); }
+  .mapel-btn svg { width: 100%; max-width: 120px; height: auto; margin-bottom: 8px; }
+
+  .qtop { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .stats { display: flex; gap: 14px; font-weight: 600; font-size: 0.95rem; }
+  .timer { height: 8px; background: var(--field); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+  #timer-bar { height: 100%; width: 100%; background: var(--accent2); border-radius: 99px; }
+  #timer-bar.low { background: var(--danger); }
+  .qhead { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+  .art { flex: none; width: 96px; }
+  .art svg { width: 100%; height: auto; display: block; }
+  #q-text { font-size: 1.2rem; }
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    display: flex; gap: 10px; align-items: center; text-align: left; width: 100%; font: inherit;
+    color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; cursor: pointer;
+  }
+  .opt .huruf {
+    flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--line); font-weight: 700; font-size: 0.85rem;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--accent2); }
+  .opt:disabled { cursor: default; color: var(--ink); }
+  .opt.ok { border-color: var(--ok); background: rgba(111, 211, 160, 0.16); }
+  .opt.no { border-color: var(--danger); background: rgba(255, 138, 128, 0.16); }
+  .opt.off { opacity: 0.3; }
+  .qtools { margin-top: 12px; display: flex; justify-content: flex-end; }
+  .fb { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); }
+  .fb.good { border-color: var(--ok); }
+  .fb.bad { border-color: var(--danger); }
+  .fb svg { width: 64px; height: auto; flex: none; }
+  #btn-next { margin-top: 14px; }
+
+  #r-art svg { width: 110px; height: auto; }
+  .stars { font-size: 1.8rem; margin: 6px 0; }
+  .review { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+  .review li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); }
+  .review b { color: var(--ok); }
+  #r-review { margin-top: 16px; }
+
+  #rocket { position: fixed; left: 50%; bottom: -140px; width: 60px; margin-left: -30px; z-index: 40; pointer-events: none; opacity: 0; }
+  #rocket svg { width: 100%; height: auto; display: block; }
+  #rocket.go { animation: fly 1.5s ease-in forwards; }
+  @keyframes fly {
+    0% { opacity: 1; transform: translateY(0) rotate(0); }
+    10% { transform: translateY(-30px) rotate(-3deg); }
+    20% { transform: translateY(-70px) rotate(3deg); }
+    100% { opacity: 1; transform: translateY(-130vh) rotate(0); }
+  }
+  .flame { transform-origin: 50% 0; animation: flick 0.12s infinite alternate; }
+  @keyframes flick { from { transform: scaleY(0.8); } to { transform: scaleY(1.2); } }
+  .robot-anim { animation: pop 0.5s ease-out; }
+  @keyframes pop { from { transform: scale(0.4) rotate(-10deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    #rocket.go, .flame, .robot-anim { animation: none; }
+  }
+
+  .dock { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 30; display: flex; gap: 8px; }
+  .pill {
+    font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 8px 14px;
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+
+  .badge-baru { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px; border-radius: 12px; border: 1px solid var(--accent2); background: rgba(79, 209, 255, 0.08); animation: pop 0.5s ease-out; text-align: left; }
+  .badge-baru .ikon { font-size: 1.8rem; flex: none; }
+  .lencana-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .lencana { font-size: 0.8rem; font-weight: 600; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--field); color: var(--muted); }
+  .lencana.aktif { color: var(--accent-ink); background: linear-gradient(90deg, var(--accent2), var(--accent)); border-color: transparent; }
+</style>
+</head>
+<body>
+<canvas id="galaxy" aria-hidden="true"></canvas>
+<div id="rocket" aria-hidden="true"></div>
+
+<div class="wrap">
+  <!-- LOGIN -->
+  <section id="s-login">
+    <div>
+      <h1 class="glow">Quiz Galaksi</h1>
+      <p class="muted" style="margin-top:10px">Belajar Matematika, IPA, IPS, dan Bahasa Inggris dari SD sampai SMA.</p>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist" aria-label="masuk atau daftar">
+        <button class="tab" role="tab" id="tab-masuk" aria-selected="true">Masuk</button>
+        <button class="tab" role="tab" id="tab-daftar" aria-selected="true">Daftar</button>
+      </div>
+  
+      <div id="p-masuk">
+        <div class="field">
+          <label for="in-nama">Nama panggilan</label>
+          <input type="text" id="in-nama" maxlength="20" autocomplete="username" spellcheck="true" placeholder="Contoh: tamu / agha">
+        </div>
+        <div class="field">
+          <label for="in-kode">Kode akses</label>
+          <input type="text" id="in-kode" maxlength="25" autocomplete="current-password" spellcheck="true" placeholder="AGHZ4DX">
+        </div>
+        <p class="msg" id="msg-login" role="status" aria-live="polite"></p>
+        <button class="btn primary full" id="btn-masuk" type="button">Masuk Wahana</button>
+        <p class="hint">Akun uji coba siap pakai: nama <b>tamu</b> atau <b>agha</b> dengan kode AGHZ4DX</p>
+      </div>
+
+      <div id="p-daftar" hidden>
+        <div class="field">
+          <label for="reg-nama">Nama panggilan</label>
+          <input type="text" id="reg-nama" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Contoh: Agha">
+        </div>
+        <p class="msg" id="msg-reg" role="status" aria-live="polite"></p>
+        <button class="btn primary full" id="btn-daftar" type="button">Buat Kode Akses</button>
+        <div id="hasil-kode" hidden>
+          <p class="hint">Ini kode akses unikmu. Catat atau salin kode ini untuk masuk kembali:</p>
+          <p class="kode-besar"><pass id="kode-baru"></pass></p>
+          <div class="row2">
+            <button class="btn small" id="btn-salin" type="button">Salin Kode</button>
+            <button class="btn primary small" id="btn-langsung" type="button">Langsung Masuk</button>
+            <button id="btnSuara">Klik Saya!</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section id="s-menu" hidden>
+    <div class="topbar">
+      <div>
+        <h2 class="glow">Halo, <span id="nm"></span>!</h2>
+        <p class="muted">Pilih jenjang, kelas, lalu mata pelajaran.</p>
+      </div>
+      <button class="btn small" id="btn-logout" type="button">Keluar</button>
+    </div>
+    <div class="card">
+      <p class="lbl">Jenjang</p>
+      <div class="seg" id="seg-jenjang"></div>
+      <p class="lbl">Kelas</p>
+      <div class="seg" id="seg-kelas" style="margin-bottom:0"></div>
+    </div>
+    <div class="mapel-grid" id="mapel-grid"></div>
+    <div class="card" id="lencana-panel" style="margin-top:16px">
+      <p class="lbl">Penghargaanmu</p>
+      <div class="lencana-grid" id="lencana-grid"></div>
+    </div>
+    <div class="card" id="papan-panel" style="margin-top:16px">
+      <div class="topbar" style="margin-bottom:10px">
+        <p class="lbl" style="margin:0">Papan Peringkat</p>
+        <button class="btn small" id="btn-refresh-papan" type="button">Lihat peringkat kelas ini</button>
+      </div>
+      <div id="papan-list"></div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="s-quiz" hidden>
+    <div class="qtop">
+      <button class="btn small" id="btn-batal" type="button">Keluar quiz</button>
+      <div class="stats"><span id="q-no"></span><span id="q-skor"></span><span id="q-streak"></span></div>
+    </div>
+    <div class="timer"><div id="timer-bar"></div></div>
+    <div class="card">
+      <div class="qhead">
+        <div class="art" id="q-art"></div>
+        <div>
+          <p class="muted" id="q-info"></p>
+          <h2 id="q-text"></h2>
+        </div>
+      </div>
+      <div class="opts" id="q-opts"></div>
+      <div class="qtools"><button class="btn small" id="btn-5050" type="button">50:50</button></div>
+      <div class="fb" id="fb" aria-live="polite" hidden>
+        <div id="fb-art"></div>
+        <p id="fb-text"></p>
+      </div>
+      <button class="btn primary full" id="btn-next" type="button" hidden>Lanjut</button>
+    </div>
+  </section>
+
+  <!-- BOSS BATTLE -->
+  <section id="s-boss" hidden>
+    <div class="qtop">
+      <button class="btn small" id="btn-boss-batal" type="button">Kabur dari bos</button>
+      <div class="stats"><span id="boss-no"></span><span id="boss-skor"></span></div>
+    </div>
+    <div class="card center" style="margin-bottom:14px">
+      <div id="boss-art"></div>
+      <h3 id="boss-judul">Bos Galaksi Muncul!</h3>
+      <p class="muted" id="boss-sub">Jawab benar untuk mengalahkan bos dan tambah nilaimu.</p>
+      <div class="timer" style="margin-top:12px"><div id="boss-hp" style="background:var(--danger)"></div></div>
+    </div>
+    <div class="card">
+      <div class="qhead">
+        <div class="art" id="boss-q-art"></div>
+        <div>
+          <p class="muted" id="boss-q-info"></p>
+          <h2 id="boss-q-text"></h2>
+        </div>
+      </div>
+      <div class="opts" id="boss-q-opts"></div>
+      <div class="fb" id="boss-fb" aria-live="polite" hidden>
+        <div id="boss-fb-art"></div>
+        <p id="boss-fb-text"></p>
+      </div>
+      <button class="btn primary full" id="btn-boss-next" type="button" hidden>Lanjut</button>
+    </div>
+  </section>
+
+  <!-- HASIL -->
+  <section id="s-result" hidden>
+    <div class="card center">
+      <div id="r-art"></div>
+      <h2 id="r-judul"></h2>
+      <p class="stars" id="r-stars"></p>
+      <p class="muted" id="r-detail"></p>
+      <p class="muted" id="r-best" style="margin-bottom:16px"></p>
+      <p class="muted" id="r-peringkat" style="margin-bottom:16px"></p>
+      <div id="r-badge-baru"></div>
+      <div id="r-boss-ajakan" hidden>
+        <div class="card" style="margin-top:16px;border-color:var(--danger)">
+          <p><b>Nilaimu di bawah 80.</b> Mau melawan Bos Galaksi untuk mendapat kesempatan menambah nilai?</p>
+          <div class="row2" style="margin-top:10px">
+            <button class="btn primary" id="btn-lawan-bos" type="button">Lawan Bos!</button>
+          </div>
+        </div>
+      </div>
+      <div class="row2" style="margin-top:16px">
+        <button class="btn primary" id="btn-lagi" type="button">Main lagi</button>
+        <button class="btn" id="btn-menu" type="button">Ke menu</button>
+      </div>
+    </div>
+    <div class="card" id="r-review" hidden>
+      <h3>Soal yang perlu diulang</h3>
+      <ul class="review" id="r-list"></ul>
+    </div>
+  </section>
+</div>
+
+<div class="dock">
+  <button class="pill" id="btn-suara" type="button">Suara: Nyala</button>
+  <button class="pill" id="btn-galaksi" type="button" aria-pressed="true">Galaksi: Nyala</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  function $(id) { return document.getElementById(id); }
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function msg(id, t, c) { 
+    var e = $(id); 
+    e.textContent = t; 
+    e.className = "msg" + (c ? " " + c : ""); 
+  }
+  function buatTombol(cls, txt) {
+    var b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = txt; return b;
+  }
+  function acak(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  // Pembersih input kode akses (mengekstraksi kode murni jika ada tag <pass>)
+  function bersihkanKode(str) {
+    if (!str) return "";
+    var match = str.match(/<pass>(.*?)<\/pass>/i) || str.match(/<pass>(.*?)<pass\/>/i);
+    if (match && match[1]) {
+      return match[1].trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
+    return str.replace(/<[^>]*>/g, "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  // Sistem Penyimpanan Akun Lokal
+  var mem = {};
+  function load(k, d) {
+    try { var v = localStorage.getItem("qg_" + k); if (v !== null) return JSON.parse(v); } catch (e) {}
+    return has(mem, k) ? mem[k] : d;
+  }
+  function save(k, v) {
+    mem[k] = v;
+    try { localStorage.setItem("qg_" + k, JSON.stringify(v)); } catch (e) {}
+  }
+
+  // Background Animasi Galaksi
+  (function galaxy() {
+    var cv = $("galaxy"), ctx = cv.getContext("2d");
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var W = 0, H = 0, R = 0, cx = 0, cy = 0;
+    var stars = [], parts = [], shoot = null;
+    var rot = 0, t = 0, on = true, running = false;
+    var ARMS = 3, TILT = -0.5, ct = Math.cos(TILT), st = Math.sin(TILT);
+
+    function build() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      cv.style.width = W + "px"; cv.style.height = H + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx = W * 0.5; cy = H * 0.5; R = Math.min(Math.max(W, H) * 0.5, 720);
+      var nStars = Math.min(300, Math.round(W * H / 6000));
+      stars = [];
+      for (var i = 0; i < nStars; i++) {
+        stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.2 + 0.3,
+          phase: Math.random() * 6.28, speed: 0.6 + Math.random() * 1.6 });
+      }
+      parts = [];
+      for (var j = 0; j < 1500; j++) {
+        var d = Math.pow(Math.random(), 0.65);
+        var hue = 35 + d * 215, light = 88 - d * 32, alpha = 0.3 + 0.55 * (1 - d);
+        parts.push({
+          arm: j % ARMS, d: d,
+          jx: (Math.random() - 0.5) * R * 0.14 * (0.3 + d),
+          jy: (Math.random() - 0.5) * R * 0.14 * (0.3 + d),
+          size: Math.random() < 0.08 ? 2 : 1.2,
+          color: "hsla(" + hue.toFixed(0) + ",85%," + light.toFixed(0) + "%," + alpha.toFixed(2) + ")"
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var a = reduce ? 0.7 : 0.35 + 0.65 * Math.abs(Math.sin(t * s.speed + s.phase));
+        ctx.fillStyle = "rgba(230,235,255," + a.toFixed(2) + ")";
+        ctx.fillRect(s.x, s.y, s.r, s.r);
+      }
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.42);
+      g.addColorStop(0, "rgba(255,214,150,0.38)");
+      g.addColorStop(0.4, "rgba(160,120,255,0.14)");
+      g.addColorStop(1, "rgba(7,10,26,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+      for (var k = 0; k < parts.length; k++) {
+        var p = parts[k];
+        var ang = p.arm * (6.2832 / ARMS) + p.d * 4.4 + rot;
+        var rr = p.d * R;
+        var px = Math.cos(ang) * rr + p.jx;
+        var py = (Math.sin(ang) * rr + p.jy) * 0.45;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(cx + px * ct - py * st, cy + px * st + py * ct, p.size, p.size);
+      }
+      if (!reduce) {
+        if (!shoot && Math.random() < 0.004) {
+          shoot = { x: Math.random() * W * 0.8, y: Math.random() * H * 0.4, vx: 8, vy: 4, life: 1 };
+        }
+        if (shoot) {
+          var x2 = shoot.x - shoot.vx * 6, y2 = shoot.y - shoot.vy * 6;
+          var lg = ctx.createLinearGradient(shoot.x, shoot.y, x2, y2);
+          lg.addColorStop(0, "rgba(255,255,255," + shoot.life.toFixed(2) + ")");
+          lg.addColorStop(1, "rgba(79,209,255,0)");
+          ctx.strokeStyle = lg; ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.moveTo(shoot.x, shoot.y); ctx.lineTo(x2, y2); ctx.stroke();
+          shoot.x += shoot.vx; shoot.y += shoot.vy; shoot.life -= 0.02;
+          if (shoot.life <= 0) shoot = null;
+        }
+      }
+    }
+
+    function loop() {
+      if (!on) { running = false; return; }
+      rot += 0.0004; t += 0.016;
+      draw();
+      requestAnimationFrame(loop);
+    }
+    function start() {
+      if (reduce) { draw(); return; }
+      if (!running) { running = true; requestAnimationFrame(loop); }
+    }
+    var btn = $("btn-galaksi");
+    btn.onclick = function () {
+      on = !on;
+      btn.textContent = "Galaksi: " + (on ? "Nyala" : "Mati");
+      btn.setAttribute("aria-pressed", String(on));
+      if (on) start(); else ctx.clearRect(0, 0, W, H);
+    };
+    window.addEventListener("resize", function () { build(); if (on && reduce) draw(); });
+    build();
+    start();
+  })();
+
+  var MAPEL = { mat: "Matematika", ipa: "IPA", ips: "IPS", eng: "Bahasa Inggris" };
+  var URUT = ["mat", "ipa", "ips", "eng"];
+  var JENJANG = { SD: [1, 2, 3, 4, 5, 6], SMP: [7, 8, 9], SMA: [10, 11, 12] };
+
+  var ART = {
+    mat: `<svg viewBox="0 0 120 90" aria-hidden="true"><circle cx="26" cy="28" r="16" fill="#4fd1ff"/><rect x="50" y="12" width="32" height="32" rx="5" fill="#8f7bff"/><polygon points="104,12 90,44 118,44" fill="#ffb84d"/><text x="60" y="80" text-anchor="middle" font-size="20" font-weight="700" fill="#eef0fb">π + − × ÷</text></svg>`,
+    ipa: `<svg viewBox="0 0 120 90" aria-hidden="true"><g fill="none" stroke="#3fcf8e" stroke-width="3"><ellipse cx="34" cy="46" rx="26" ry="10"/><ellipse cx="34" cy="46" rx="26" ry="10" transform="rotate(60 34 46)"/><ellipse cx="34" cy="46" rx="26" ry="10" transform="rotate(120 34 46)"/></g><circle cx="34" cy="46" r="6" fill="#ffb84d"/><path d="M86 10h16v22l14 38q3 12-9 12H81q-12 0-9-12l14-38z" fill="#4fd1ff" fill-opacity="0.2" stroke="#eef0fb" stroke-width="3"/><path d="M79 60h30l7 10q3 12-9 12H81q-12 0-9-12z" fill="#3fcf8e"/><circle cx="92" cy="50" r="3" fill="#eef0fb"/><circle cx="98" cy="40" r="2" fill="#eef0fb"/></svg>`,
+    ips: `<svg viewBox="0 0 120 90" aria-hidden="true"><g transform="translate(0,6)"><circle cx="60" cy="52" r="32" fill="#2a6bff"/><path d="M40 42c8-10 18-8 22-2s-4 12-12 12-14 2-10-10zM70 56c8-4 16 0 14 10s-10 14-14 8-4-14 0-18z" fill="#3fcf8e"/><ellipse cx="60" cy="52" rx="14" ry="32" fill="none" stroke="#eef0fb" stroke-opacity="0.5" stroke-width="2"/><path d="M28 52h64" stroke="#eef0fb" stroke-opacity="0.5" stroke-width="2"/></g><path d="M60 2c-8 0-13 6-13 13 0 10 13 22 13 22s13-12 13-22c0-7-5-13-13-13z" fill="#f0b84b"/><circle cx="60" cy="15" r="5" fill="#0a0c1f"/></svg>`,
+    eng: `<svg viewBox="0 0 120 90" aria-hidden="true"><rect x="8" y="4" width="74" height="38" rx="10" fill="#ff7ab8"/><polygon points="24,42 24,56 38,42" fill="#ff7ab8"/><text x="45" y="29" text-anchor="middle" font-size="18" font-weight="700" fill="#0a0c1f">Hello!</text><path d="M78 62Q64 54 50 60V84Q64 78 78 86z" fill="#eef0fb" stroke="#8f7bff" stroke-width="2"/><path d="M78 62Q92 54 106 60V84Q92 78 78 86z" fill="#eef0fb" stroke="#8f7bff" stroke-width="2"/><text x="92" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#0a0c1f">ABC</text></svg>`
+  };
+
+  var ROBOT = `<svg viewBox="0 0 80 90" class="robot-anim" aria-hidden="true"><line x1="40" y1="6" x2="40" y2="16" stroke="#9aa3c7" stroke-width="3"/><circle cx="40" cy="6" r="4" fill="#ff7ab8"/><rect x="16" y="16" width="48" height="34" rx="10" fill="#dfe6ff" stroke="#8f7bff" stroke-width="3"/><circle cx="30" cy="32" r="6" fill="#0a0c1f"/><circle cx="50" cy="32" r="6" fill="#0a0c1f"/><circle cx="32" cy="30" r="2" fill="#4fd1ff"/><circle cx="52" cy="30" r="2" fill="#4fd1ff"/><path d="M30 42q10 7 20 0" stroke="#0a0c1f" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="22" y="54" width="36" height="26" rx="8" fill="#8f7bff"/><circle cx="40" cy="67" r="5" fill="#4fd1ff"/><path d="M22 60L8 46" stroke="#dfe6ff" stroke-width="6" stroke-linecap="round"/><path d="M58 60l14-14" stroke="#dfe6ff" stroke-width="6" stroke-linecap="round"/><rect x="26" y="80" width="10" height="8" rx="3" fill="#dfe6ff"/><rect x="44" y="80" width="10" height="8" rx="3" fill="#dfe6ff"/></svg>`;
+  var ROKET = `<svg viewBox="0 0 60 120" aria-hidden="true"><path d="M30 4C42 20 46 44 44 72H16C14 44 18 20 30 4Z" fill="#eef0fb"/><circle cx="30" cy="38" r="8" fill="#4fd1ff" stroke="#8f7bff" stroke-width="3"/><path d="M16 58L4 86l14-8z" fill="#ff6b6b"/><path d="M44 58l12 28-14-8z" fill="#ff6b6b"/><g class="flame"><path d="M22 72h16l-8 34z" fill="#ffb84d"/><path d="M26 72h8l-4 18z" fill="#fff3b0"/></g></svg>`;
+  var BOSS = `<svg viewBox="0 0 140 130" aria-hidden="true"><ellipse cx="70" cy="70" rx="58" ry="50" fill="#3a2a6d" stroke="#ff8a80" stroke-width="4"/><circle cx="46" cy="60" r="14" fill="#0a0c1f"/><circle cx="94" cy="60" r="14" fill="#0a0c1f"/><circle cx="46" cy="60" r="6" fill="#ff8a80"/><circle cx="94" cy="60" r="6" fill="#ff8a80"/><path d="M36 92q34 22 68 0" stroke="#ff8a80" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M20 30l14 18M120 30l-14 18M50 18l6 16M90 18l-6 16" stroke="#8f7bff" stroke-width="6" stroke-linecap="round"/></svg>`;
+
+  $("rocket").innerHTML = ROKET;
+
+  // Bank Soal Kelas 1 - 12
+  var BANK = {
+    1: {
+      mat: [["3 + 4 = ...","7","6","8","5"],["9 − 5 = ...","4","3","5","14"],["Bilangan setelah 15 adalah ...","16","14","17","25"],["Bilangan yang lebih besar dari 12 adalah ...","13","11","10","9"],["5 + 5 = ...","10","9","11","55"],["Roda sepeda berbentuk ...","Lingkaran","Persegi","Segitiga","Persegi panjang"],["Segitiga memiliki ... sisi.","3","4","2","5"],["10 − 3 = ...","7","6","8","13"],["2 + 8 = ...","10","9","12","6"],["Urutan bilangan yang benar adalah ...","3, 4, 5, 6","3, 5, 4, 6","6, 5, 3, 4","4, 3, 6, 5"]],
+      ipa: [["Untuk melihat kita menggunakan ...","Mata","Telinga","Hidung","Lidah"],["Alat indera untuk mendengar adalah ...","Telinga","Mata","Kulit","Hidung"],["Lidah berfungsi untuk mengecap ...","Rasa","Bau","Suara","Warna"],["Hewan yang hidup di air adalah ...","Ikan","Kucing","Ayam","Kambing"],["Bagian tumbuhan yang menyerap air dari tanah adalah ...","Akar","Daun","Bunga","Batang"],["Matahari bersinar pada waktu ...","Siang hari","Malam hari","Tengah malam","Larut malam"],["Ayam berkembang biak dengan cara ...","Bertelur","Melahirkan","Membelah diri","Bertunas"],["Kulit berfungsi untuk ...","Meraba","Melihat","Mendengar","Mencium"],["Sebelum makan kita harus ...","Mencuci tangan","Bermain tanah","Berlari","Tidur"],["Hewan yang bisa terbang adalah ...","Burung","Sapi","Kelinci","Ikan"]],
+      ips: [["Orang tua laki-laki kita disebut ...","Ayah","Ibu","Kakak","Adik"],["Tempat kita belajar adalah ...","Sekolah","Pasar","Rumah sakit","Bioskop"],["Ibu guru mengajar di ...","Sekolah","Kantor pos","Terminal","Stasiun"],["Keluarga inti terdiri dari ayah, ibu, dan ...","Anak","Tetangga","Guru","Teman"],["Hari kemerdekaan Indonesia dirayakan setiap tanggal 17 ...","Agustus","Januari","Mei","Desember"],["Bendera Indonesia berwarna ...","Merah putih","Biru putih","Hijau kuning","Merah hitam"],["Kepada guru kita harus bersikap ...","Sopan","Kasar","Malas","Marah"],["Tempat tinggal keluarga disebut ...","Rumah","Sawah","Kantor","Pabrik"],["Lambang negara Indonesia adalah ...","Garuda Pancasila","Harimau Sumatra","Komodo","Banteng"],["Saat bertemu teman, kita mengucapkan ...","Salam","Ejekan","Bentakan","Teriakan"]],
+      eng: [["Apple artinya ...","Apel","Jeruk","Pisang","Anggur"],["Red artinya warna ...","Merah","Biru","Hijau","Kuning"],["Bahasa Inggris dari kucing adalah ...","Cat","Dog","Bird","Fish"],["One, two, ..., four","Three","Five","Six","Ten"],["Good morning artinya ...","Selamat pagi","Selamat malam","Selamat siang","Selamat tinggal"],["Bahasa Inggris dari buku adalah ...","Book","Pen","Bag","Desk"],["Blue artinya ...","Biru","Merah","Hitam","Putih"],["What is your name? My ... is Budi.","name","book","cat","red"],["Dog artinya ...","Anjing","Kucing","Ikan","Burung"],["Thank you artinya ...","Terima kasih","Selamat pagi","Maaf","Tolong"]]
+    },
+    2: {
+      mat: [["45 + 30 = ...","75","65","85","70"],["80 − 25 = ...","55","65","45","105"],["2 × 6 = ...","12","8","10","14"],["5 × 4 = ...","20","9","25","15"],["10 ÷ 2 = ...","5","8","12","20"],["Nilai tempat angka 3 pada bilangan 35 adalah ...","Puluhan","Satuan","Ratusan","Ribuan"],["Jam pendek menunjuk angka 3 dan jam panjang angka 12. Pukul berapa?","03.00","12.03","12.00","06.00"],["1 meter = ... cm","100","10","1000","50"],["Persegi memiliki ... sisi yang sama panjang.","4","3","2","5"],["Bilangan genap setelah 8 adalah ...","10","9","11","7"]],
+      ipa: [["Es batu berwujud ...","Padat","Cair","Gas","Uap"],["Air dalam gelas berwujud ...","Cair","Padat","Gas","Debu"],["Tumbuhan membuat makanan di bagian ...","Daun","Akar","Batang","Buah"],["Hewan pemakan tumbuhan disebut ...","Herbivora","Karnivora","Omnivora","Insektivora"],["Harimau termasuk hewan pemakan ...","Daging","Rumput","Biji","Daun"],["Benda yang dapat ditarik magnet adalah ...","Paku besi","Kertas","Plastik","Kayu"],["Sumber cahaya utama di bumi adalah ...","Matahari","Bulan","Awan","Pelangi"],["Kupu-kupu berkembang biak dengan cara ...","Bertelur","Melahirkan","Bertunas","Membelah diri"],["Tumbuhan membutuhkan ... agar tumbuh.","Air dan cahaya matahari","Permen dan cokelat","Plastik","Batu"],["Bunyi dihasilkan oleh benda yang ...","Bergetar","Diam","Dingin","Basah"]],
+      ips: [["Tempat membeli sayur dan buah adalah ...","Pasar","Bengkel","Perpustakaan","Bandara"],["Orang yang merawat orang sakit di rumah sakit adalah ...","Dokter","Petani","Sopir","Nelayan"],["Petani bekerja di ...","Sawah","Laut","Kantor","Pabrik"],["Nelayan mencari ikan di ...","Laut","Sawah","Hutan","Gunung"],["Kendaraan yang melaju di atas rel adalah ...","Kereta api","Perahu","Pesawat","Becak"],["Peraturan di sekolah harus kita ...","Taati","Langgar","Abaikan","Ejek"],["Membantu teman yang kesusahan adalah sikap ...","Tolong-menolong","Egois","Malas","Sombong"],["Pak polisi bertugas menjaga ...","Keamanan dan ketertiban","Sawah","Kebun","Pasar"],["Lagu kebangsaan Indonesia adalah ...","Indonesia Raya","Garuda Pancasila","Halo-Halo Bandung","Rayuan Pulau Kelapa"],["Kendaraan yang terbang di udara adalah ...","Pesawat","Kapal laut","Sepeda","Delman"]],
+      eng: [["The color of banana is ...","yellow","blue","black","pink"],["A cat has ... legs.","four","two","six","ten"],["I ... a student.","am","is","are","be"],["Bahasa Inggris dari sekolah adalah ...","school","market","house","hospital"],["Monday, Tuesday, ..., Thursday","Wednesday","Friday","Sunday","Saturday"],["She ... my mother.","is","am","are","do"],["Bahasa Inggris dari ibu adalah ...","mother","father","sister","brother"],["Six + four = ...","ten","nine","eight","seven"],["It is ... orange.","an","a","some","two"],["Bahasa Inggris dari merah adalah ...","red","green","blue","white"]]
+    },
+    3: {
+      mat: [["6 × 7 = ...","42","36","48","49"],["56 ÷ 8 = ...","7","6","8","9"],["125 + 238 = ...","363","353","373","263"],["500 − 175 = ...","325","335","425","315"],["Keliling persegi dengan sisi 6 cm adalah ...","24 cm","12 cm","36 cm","18 cm"],["1/2 sama dengan ...","2/4","1/4","2/3","3/4"],["Pukul 14.00 sama dengan pukul ...","2 siang","12 siang","4 sore","1 siang"],["Bilangan Romawi untuk 9 adalah ...","IX","XI","VIX","VIII"],["9 × 9 = ...","81","72","90","99"],["Keliling persegi panjang dengan panjang 8 cm dan lebar 3 cm adalah ...","22 cm","24 cm","11 cm","16 cm"]],
+      ipa: [["Proses air berubah menjadi uap disebut ...","Menguap","Membeku","Mencair","Mengembun"],["Benda yang menghasilkan cahaya sendiri disebut ...","Sumber cahaya","Cermin","Bayangan","Lensa"],["Metamorfosis sempurna dialami oleh ...","Kupu-kupu","Belalang","Kecoa","Jangkrik"],["Bagian bunga yang akan menjadi buah adalah ...","Bakal buah","Mahkota","Kelopak","Tangkai"],["Gaya yang menarik benda ke bawah adalah gaya ...","Gravitasi","Magnet","Pegas","Angin"],["Panas yang sampai ke bumi berasal dari ...","Matahari","Bulan","Angin","Air"],["Makhluk hidup yang berperan sebagai produsen adalah ...","Tumbuhan hijau","Sapi","Harimau","Elang"],["Benda yang tenggelam di air adalah ...","Batu","Gabus","Daun kering","Styrofoam"],["Bunyi tidak dapat merambat melalui ...","Ruang hampa","Udara","Air","Besi"],["Sumber energi listrik pada senter adalah ...","Baterai","Air","Angin","Gas"]],
+      ips: [["Rumah adat Minangkabau disebut ...","Rumah Gadang","Joglo","Honai","Tongkonan"],["Alat transportasi air adalah ...","Perahu","Becak","Kereta","Bus"],["Orang yang menanam padi disebut ...","Petani","Nelayan","Guru","Pilot"],["Candi Borobudur berada di provinsi ...","Jawa Tengah","Bali","Sumatra Utara","Jawa Timur"],["Suku Batak berasal dari pulau ...","Sumatra","Jawa","Papua","Kalimantan"],["Tari Kecak berasal dari ...","Bali","Aceh","Papua","Jawa Barat"],["Orang yang membeli barang disebut ...","Pembeli","Penjual","Produsen","Distributor"],["Sikap saling membantu antartetangga disebut ...","Gotong royong","Persaingan","Perselisihan","Egois"],["Pancasila memiliki ... sila.","5","4","6","10"],["Semboyan bangsa Indonesia adalah ...","Bhinneka Tunggal Ika","Tut Wuri Handayani","Ing Ngarsa Sung Tuladha","Rawe-rawe Rantas"]],
+      eng: [["She ... a book.","reads","read","reading","to read"],["They ... playing football.","are","is","am","be"],["The opposite of big is ...","small","tall","long","fat"],["Number 15 is ...","fifteen","fifty","five","fourteen"],["We sleep at ...","night","morning","noon","afternoon"],["A ... is used to write.","pencil","spoon","plate","shoe"],["Bahasa Inggris dari delapan adalah ...","eight","eighteen","eighty","seven"],["There are ... days in a week.","seven","five","six","eight"],["What color is the sky?","It is blue.","It is red.","It is green.","It is black."],["My father is a doctor. He ... patients.","helps","help","helping","to help"]]
+    },
+    4: {
+      mat: [["24 × 5 = ...","120","110","130","100"],["144 ÷ 12 = ...","12","14","11","16"],["Luas persegi panjang dengan panjang 12 cm dan lebar 5 cm adalah ...","60 cm²","34 cm²","17 cm²","50 cm²"],["KPK dari 4 dan 6 adalah ...","12","24","2","10"],["FPB dari 12 dan 18 adalah ...","6","3","36","2"],["3/4 + 1/4 = ...","1","4/8","3/16","2/4"],["Sudut siku-siku besarnya ...","90°","180°","45°","60°"],["Pembulatan 3.467 ke ratusan terdekat adalah ...","3.500","3.400","3.000","3.470"],["Sebuah persegi memiliki keliling 40 cm. Panjang sisinya adalah ...","10 cm","20 cm","8 cm","4 cm"],["Bilangan prima di antara berikut adalah ...","13","9","15","21"]],
+      ipa: [["Kipas angin mengubah energi listrik menjadi energi ...","gerak","cahaya","kimia","bunyi"],["Cahaya merambat menurut garis ...","lurus","lengkung","zig-zag","melingkar"],["Cermin datar menghasilkan bayangan yang ...","sama besar dengan bendanya","lebih besar","lebih kecil","terbalik dan nyata"],["Rantai makanan yang benar adalah ...","Rumput → belalang → katak → ular","Ular → katak → belalang → rumput","Katak → rumput → ular → belalang","Belalang → ular → rumput → katak"],["Sumber daya alam yang tidak dapat diperbarui adalah ...","Minyak bumi","Air","Hutan","Ikan"],["Gaya gesek membuat benda yang bergerak menjadi ...","melambat","melayang","membesar","membeku"],["Bunyi bernada tinggi memiliki frekuensi ...","tinggi","rendah","nol","tetap"],["Alat pernapasan ikan adalah ...","Insang","Paru-paru","Trakea","Kulit"],["Bagian tumbuhan yang mengangkut air dari akar ke daun adalah ...","Batang","Bunga","Buah","Biji"],["Contoh energi terbarukan adalah ...","Energi matahari","Batu bara","Minyak bumi","Gas alam"]],
+      ips: [["Kenampakan alam yang menjulang tinggi dengan puncak runcing adalah ...","Gunung","Lembah","Dataran","Danau"],["Pulau yang dijuluki Pulau Dewata adalah ...","Bali","Lombok","Jawa","Madura"],["Sungai terpanjang di Pulau Jawa adalah ...","Bengawan Solo","Musi","Kapuas","Mahakam"],["Mata pencaharian penduduk pesisir pantai umumnya adalah ...","Nelayan","Petani kopi","Peternak sapi","Penambang batu"],["Rumah adat Papua adalah ...","Honai","Gadang","Joglo","Betang"],["Contoh keragaman budaya adalah ...","Perbedaan bahasa daerah","Perkelahian","Kebiasaan buruk","Perpecahan"],["Sumber daya alam hayati adalah ...","Hutan","Batu bara","Emas","Nikel"],["Arah timur laut terletak di antara utara dan ...","timur","barat","selatan","tenggara"],["Lambang sila pertama Pancasila adalah ...","Bintang","Rantai","Pohon beringin","Kepala banteng"],["Danau Toba berada di provinsi ...","Sumatra Utara","Sumatra Barat","Jambi","Aceh"]],
+      eng: [["She is ... a letter.","writing","write","wrote","writes"],["How many ... are there?","pencils","pencil","a pencil","much pencil"],["The opposite of hot is ...","cold","warm","hard","dry"],["A quarter past five means ...","5.15","5.45","4.15","5.30"],["Bahasa Inggris dari pesawat adalah ...","airplane","ship","train","bicycle"],["There ... two cats on the sofa.","are","is","am","was"],["Yesterday, I ... to school.","went","go","goes","going"],["Ejaan yang benar adalah ...","beautiful","beutiful","beatiful","beautifull"],["We buy medicine at the ...","pharmacy","library","bakery","stadium"],["The plural of box is ...","boxes","boxs","boxies","box"]]
+    },
+    5: {
+      mat: [["2/3 + 1/6 = ...","5/6","3/9","1/2","2/9"],["0,75 sama dengan pecahan ...","3/4","7/5","1/75","2/3"],["KPK dari 6, 8, dan 12 adalah ...","24","48","12","72"],["Volume kubus dengan rusuk 5 cm adalah ...","125 cm³","25 cm³","75 cm³","15 cm³"],["Hasil dari 15,5 + 4,25 adalah ...","19,75","19,3","20,75","18,75"],["Bilangan bulat yang lebih kecil dari −3 adalah ...","−5","−1","0","−2"],["Kecepatan mobil 60 km/jam. Jarak yang ditempuh dalam 3 jam adalah ...","180 km","20 km","63 km","120 km"],["Luas segitiga dengan alas 10 cm dan tinggi 6 cm adalah ...","30 cm²","60 cm²","16 cm²","15 cm²"],["25% dari 80 adalah ...","20","25","40","16"],["Rata-rata dari 6, 8, dan 10 adalah ...","8","6","10","9"]],
+      ipa: [["Organ tempat pertukaran oksigen dan karbon dioksida adalah ...","Paru-paru","Lambung","Jantung","Ginjal"],["Organ yang memompa darah ke seluruh tubuh adalah ...","Jantung","Hati","Usus","Paru-paru"],["Pencernaan makanan dimulai dari ...","Mulut","Lambung","Usus halus","Kerongkongan"],["Air laut menguap lalu membentuk awan termasuk ...","Siklus air","Rantai makanan","Fotosintesis","Metamorfosis"],["Bagian mata yang mengatur banyak sedikitnya cahaya masuk adalah ...","Pupil","Retina","Kornea","Saraf mata"],["Gas yang dihasilkan tumbuhan saat fotosintesis adalah ...","Oksigen","Karbon dioksida","Nitrogen","Hidrogen"],["Perubahan wujud cair menjadi padat disebut ...","Membeku","Mencair","Menguap","Menyublim"],["Contoh tuas adalah ...","Jungkat-jungkit","Bola","Kaca","Kipas"],["Hewan yang bernapas dengan paru-paru dan hidup di air adalah ...","Paus","Ikan mas","Udang","Kepiting"],["Planet yang paling dekat dengan Matahari adalah ...","Merkurius","Venus","Bumi","Mars"]],
+      ips: [["Kerajaan Hindu tertua di Indonesia adalah ...","Kutai","Majapahit","Sriwijaya","Mataram"],["Proklamasi kemerdekaan Indonesia dibacakan oleh ...","Ir. Soekarno","Sutan Sjahrir","Jenderal Sudirman","Ki Hajar Dewantara"],["Proklamasi kemerdekaan dilaksanakan pada tanggal ...","17 Agustus 1945","17 Agustus 1954","1 Juni 1945","28 Oktober 1928"],["Ibu kota negara Malaysia adalah ...","Kuala Lumpur","Bangkok","Manila","Hanoi"],["ASEAN didirikan pada tahun 1967 di ...","Bangkok","Jakarta","Manila","Singapura"],["Kerajaan maritim yang menguasai Selat Malaka adalah ...","Sriwijaya","Kutai","Tarumanegara","Demak"],["Sumpah Pemuda diikrarkan pada tanggal ...","28 Oktober 1928","20 Mei 1908","17 Agustus 1945","10 November 1945"],["Kegiatan mengubah bahan mentah menjadi barang jadi disebut ...","Produksi","Konsumsi","Distribusi","Reklame"],["Mata uang negara Thailand adalah ...","Baht","Ringgit","Peso","Dong"],["Tokoh yang dijuluki Bapak Pendidikan Nasional adalah ...","Ki Hajar Dewantara","Moh. Yamin","R.A. Kartini","Soepomo"]],
+      eng: [["She ... to school every day.","goes","go","going","gone"],["I have ... apple in my bag.","an","a","some","many"],["The past form of eat is ...","ate","eated","eaten","eating"],["The opposite of wide is ...","narrow","big","long","high"],["There ... some milk in the fridge.","is","are","were","am"],["Which one is a fruit?","Mango","Spinach","Onion","Potato"],["My birthday is ... June.","in","on","at","by"],["When I am hungry, I ...","eat","sleep","swim","sing"],["Tom is taller ... Andi.","than","then","that","as"],["Rina has a cat. Its name is Momo. Whose cat is Momo?","Rina's","Andi's","Tom's","Ani's"]]
+    },
+    6: {
+      mat: [["(−8) + 5 = ...","−3","3","−13","13"],["15% dari 200 adalah ...","30","15","20","45"],["Luas lingkaran dengan jari-jari 7 cm (π = 22/7) adalah ...","154 cm²","44 cm²","22 cm²","49 cm²"],["Keliling lingkaran dengan diameter 14 cm (π = 22/7) adalah ...","44 cm","88 cm","22 cm","154 cm"],["Rata-rata dari 70, 80, 90, dan 100 adalah ...","85","80","90","95"],["Volume balok berukuran 10 cm × 5 cm × 4 cm adalah ...","200 cm³","20 cm³","140 cm³","190 cm³"],["Skala peta 1 : 100.000. Jarak di peta 5 cm, jarak sebenarnya adalah ...","5 km","50 km","500 m","0,5 km"],["Kuadrat dari 12 adalah ...","144","24","122","132"],["√225 = ...","15","25","5","16"],["Modus dari data 3, 5, 5, 7, 8, 5, 9 adalah ...","5","3","7","8"]],
+      ipa: [["Alat yang mengubah energi listrik menjadi cahaya adalah ...","Lampu","Kipas","Setrika","Radio"],["Bahan yang dapat menghantarkan listrik disebut ...","Konduktor","Isolator","Katalis","Resistor"],["Kutub magnet yang sejenis jika didekatkan akan ...","tolak-menolak","tarik-menarik","diam","menyatu"],["Pusat tata surya adalah ...","Matahari","Bumi","Bulan","Jupiter"],["Peristiwa Bumi mengelilingi Matahari disebut ...","Revolusi","Rotasi","Gerhana","Pasang surut"],["Rotasi Bumi menyebabkan ...","Siang dan malam","Pergantian musim","Gerhana bulan","Pasang purnama"],["Paruh burung pelatuk yang runcing merupakan adaptasi ...","morfologi","fisiologi","tingkah laku","genetik"],["Sifat yang diwariskan dari induk kepada keturunannya disebut ...","Sifat turunan","Adaptasi","Metamorfosis","Migrasi"],["Penyebab banjir di kota yang utama adalah ...","Membuang sampah sembarangan","Menanam pohon","Reboisasi","Menghemat air"],["Planet terbesar di tata surya adalah ...","Jupiter","Saturnus","Bumi","Neptunus"]],
+      ips: [["Organisasi pergerakan nasional pertama di Indonesia adalah ...","Budi Utomo","Sarekat Islam","Indische Partij","PNI"],["Budi Utomo didirikan pada tahun ...","1908","1928","1945","1912"],["Bangsa Eropa pertama yang datang ke Indonesia mencari rempah-rempah adalah ...","Portugis","Inggris","Jepang","Amerika"],["VOC adalah kongsi dagang milik bangsa ...","Belanda","Inggris","Portugis","Spanyol"],["Jepang menyerah kepada Sekutu pada tahun ...","1945","1942","1949","1950"],["Pertempuran 10 November 1945 terjadi di kota ...","Surabaya","Bandung","Semarang","Medan"],["Indonesia terletak di antara dua benua, yaitu ...","Asia dan Australia","Eropa dan Afrika","Amerika dan Asia","Antartika dan Asia"],["Indonesia terletak di antara dua samudra, yaitu ...","Hindia dan Pasifik","Atlantik dan Pasifik","Arktik dan Hindia","Atlantik dan Hindia"],["Organisasi kerja sama negara-negara Asia Tenggara adalah ...","ASEAN","NATO","OPEC","FIFA"],["Dampak positif globalisasi adalah ...","Kemudahan memperoleh informasi","Hilangnya budaya daerah","Gaya hidup konsumtif","Ketergantungan pada produk asing"]],
+      eng: [["He has ... his homework.","finished","finish","finishing","finishes"],["If it rains, I ... at home.","will stay","stayed","staying","have stayed"],["The comparative of good is ...","better","gooder","best","more good"],["This book is ... than that one.","more interesting","most interesting","interestinger","interesting"],["A synonym of big is ...","large","tiny","thin","short"],["They ... football when it started to rain.","were playing","are playing","play","will play"],["The cake ... by my mother.","was made","made","makes","is make"],["A person who teaches students is a ...","teacher","doctor","farmer","driver"],["I am interested ... music.","in","on","at","of"],["I was born ... Bandung.","in","on","at","to"]]
+    },
+    7: {
+      mat: [["−12 + 7 = ...","−5","5","−19","19"],["Bentuk paling sederhana dari 12/18 adalah ...","2/3","3/4","4/9","1/2"],["Nilai x pada 3x + 5 = 20 adalah ...","5","6","8","15"],["Perbandingan 12 : 18 dalam bentuk paling sederhana adalah ...","2 : 3","3 : 2","4 : 5","6 : 9"],["Himpunan bilangan prima kurang dari 10 adalah ...","{2, 3, 5, 7}","{1, 3, 5, 7}","{2, 3, 5, 7, 9}","{3, 5, 7}"],["Jumlah sudut dalam segitiga adalah ...","180°","90°","360°","270°"],["Sudut yang besarnya 120° disebut sudut ...","tumpul","siku-siku","lancip","lurus"],["Luas jajar genjang dengan alas 10 cm dan tinggi 6 cm adalah ...","60 cm²","30 cm²","16 cm²","120 cm²"],["Bentuk aljabar 3a + 2a − a sama dengan ...","4a","6a","5a","2a"],["Harga 5 buku Rp25.000. Harga 8 buku adalah ...","Rp40.000","Rp35.000","Rp45.000","Rp32.000"]],
+      ipa: [["Satuan SI untuk suhu adalah ...","Kelvin","Celsius","Fahrenheit","Reamur"],["Air murni membeku pada suhu ... °C.","0","100","−10","37"],["Alat untuk mengukur massa benda adalah ...","Neraca","Termometer","Mistar","Barometer"],["Urutan takson dari yang paling luas: Kingdom, Filum, Kelas, Ordo, ...","Famili","Genus","Spesies","Varietas"],["Organel sel tempat berlangsungnya fotosintesis adalah ...","Kloroplas","Mitokondria","Nukleus","Ribosom"],["Perubahan wujud gas menjadi cair disebut ...","Mengembun","Menguap","Menyublim","Membeku"],["Zat yang dilarutkan dalam suatu larutan disebut ...","Zat terlarut","Pelarut","Endapan","Suspensi"],["Contoh perubahan kimia adalah ...","Besi berkarat","Es mencair","Air menguap","Gula larut"],["Komponen abiotik dalam ekosistem adalah ...","Cahaya matahari","Belalang","Jamur","Bakteri"],["Satuan energi kalor dalam SI adalah ...","Joule","Watt","Newton","Pascal"]],
+      ips: [["Letak astronomis Indonesia adalah ...","6° LU – 11° LS","10° LU – 20° LS","0° – 23° LS","6° LU – 6° LS"],["Indonesia memiliki iklim ...","tropis","subtropis","kutub","sedang"],["Hubungan timbal balik antarmanusia disebut ...","Interaksi sosial","Konflik","Stratifikasi","Akulturasi"],["Masa praaksara adalah masa sebelum manusia mengenal ...","tulisan","api","alat batu","bahasa"],["Alat batu pada zaman Paleolitikum adalah ...","Kapak perimbas","Nekara","Kapak persegi","Menhir"],["Zaman batu muda disebut ...","Neolitikum","Paleolitikum","Mesolitikum","Megalitikum"],["Kebutuhan pokok manusia disebut kebutuhan ...","primer","sekunder","tersier","mewah"],["Menurut hukum permintaan, jika harga naik maka jumlah permintaan ...","turun","naik","tetap","tak terbatas"],["Perpindahan penduduk dari desa ke kota disebut ...","Urbanisasi","Transmigrasi","Emigrasi","Imigrasi"],["Pergerakan lempeng bumi dapat menyebabkan ...","gempa bumi","kemarau","hujan","kabut"]],
+      eng: [["I ... a student at SMP.","am","is","are","was"],["They ... watching TV now.","are","is","am","do"],["My mother ... breakfast every morning.","cooks","cook","cooking","cooked"],["The plural of child is ...","children","childs","childes","childrens"],["She ... not like spicy food.","does","do","is","are"],["Which sentence is correct?","He goes to school by bus.","He go to school by bus.","He going to school by bus.","He goed to school by bus."],["The opposite of expensive is ...","cheap","costly","rich","heavy"],["I get up ... six o'clock.","at","in","on","by"],["There are ... books on the table.","three","a","much","an"],["The word library means ...","perpustakaan","toko","kantin","laboratorium"]]
+    },
+    8: {
+      mat: [["(x + 3)(x + 2) = ...","x² + 5x + 6","x² + 6x + 5","x² + 5x + 5","x² + 6"],["Dari x + y = 8 dan x − y = 2, nilai x adalah ...","5","3","6","4"],["Segitiga siku-siku dengan sisi 3 dan 4. Sisi miringnya adalah ...","5","6","7","12"],["Teorema Pythagoras: a² + b² = ...","c²","2c","c","a + b"],["Gradien garis y = 3x + 2 adalah ...","3","2","5","1/3"],["Keliling lingkaran berjari-jari 10 cm (π = 3,14) adalah ...","62,8 cm","31,4 cm","314 cm","6,28 cm"],["Luas lingkaran berjari-jari 7 cm (π = 22/7) adalah ...","154 cm²","44 cm²","308 cm²","22 cm²"],["Banyak sisi pada kubus adalah ...","6","8","12","4"],["Banyak rusuk pada balok adalah ...","12","6","8","10"],["Faktorisasi dari x² − 9 adalah ...","(x + 3)(x − 3)","(x − 3)²","(x + 9)(x − 1)","(x + 3)²"]],
+      ipa: [["Hukum I Newton disebut juga hukum ...","Kelembaman (inersia)","Aksi-reaksi","Gravitasi","Percepatan"],["Rumus gaya menurut Hukum II Newton adalah ...","F = m × a","F = m / a","F = a / m","F = m + a"],["Satuan gaya adalah ...","Newton","Joule","Watt","Pascal"],["Satuan tekanan adalah ...","Pascal","Newton","Joule","Hertz"],["Frekuensi getaran diukur dengan satuan ...","Hertz","Meter","Watt","Volt"],["Kaca spion kendaraan menggunakan cermin ...","cembung","cekung","datar","silinder"],["Organ penghasil empedu adalah ...","Hati","Lambung","Pankreas","Usus halus"],["Enzim amilase mencerna ...","karbohidrat","protein","lemak","vitamin"],["Pembuluh yang membawa darah dari jantung ke seluruh tubuh adalah ...","Arteri","Vena","Kapiler","Bilik"],["Kelainan mata yang sulit melihat benda jauh disebut ...","Miopi","Hipermetropi","Presbiopi","Astigmatisme"]],
+      ips: [["Perang Diponegoro terjadi pada tahun ...","1825–1830","1945–1949","1908–1912","1740–1743"],["Sistem tanam paksa diperkenalkan oleh ...","Van den Bosch","Daendels","Raffles","Coen"],["Jalan Raya Pos dibangun pada masa Gubernur Jenderal ...","Daendels","Raffles","Van den Bosch","Coen"],["Kongres Pemuda II menghasilkan ...","Sumpah Pemuda","Proklamasi","Piagam Jakarta","Pancasila"],["Peristiwa Rengasdengklok terjadi karena ...","golongan muda mendesak proklamasi","tentara Jepang datang","Belanda menyerang","sidang BPUPKI"],["Kegiatan menyalurkan barang dari produsen ke konsumen adalah ...","Distribusi","Produksi","Konsumsi","Investasi"],["Kegiatan ekonomi yang menghasilkan bahan mentah termasuk sektor ...","primer","sekunder","tersier","kuarter"],["Contoh mobilitas sosial vertikal naik adalah ...","Karyawan menjadi direktur","Pindah kota","Pindah rumah","Berganti seragam"],["Negara ASEAN dengan ibu kota Bandar Seri Begawan adalah ...","Brunei Darussalam","Laos","Kamboja","Myanmar"],["Peristiwa Bandung Lautan Api terjadi tahun ...","1946","1945","1948","1950"]],
+      eng: [["Yesterday I ... a movie.","watched","watch","watching","watches"],["She ... her homework when I called.","was doing","is doing","do","has done"],["Which one is a comparative?","taller","tall","tallest","more tall"],["This is the ... mountain in Indonesia.","highest","higher","high","more high"],["I will call you tomorrow. Tense yang digunakan adalah ...","simple future","simple past","present continuous","present perfect"],["The meeting starts ... 9 a.m.","at","on","in","to"],["A synonym of begin is ...","start","end","stop","finish"],["If I ... rich, I would travel the world.","were","am","will be","be"],["Please open the window. Kalimat ini adalah ...","request","question","complaint","invitation"],["Bentuk pasif dari She writes a letter adalah ...","A letter is written by her.","A letter written by her.","A letter was write by her.","A letter is wrote by her."]]
+    },
+    9: {
+      mat: [["2³ × 2² = ...","32","64","16","10"],["Bentuk sederhana √50 adalah ...","5√2","2√5","10√5","25√2"],["Suku ke-10 barisan 2, 5, 8, ... adalah ...","29","30","32","27"],["Jumlah 10 suku pertama barisan 1, 2, 3, ... adalah ...","55","45","50","100"],["Peluang muncul angka pada pelemparan sebuah koin adalah ...","1/2","1/4","1","1/3"],["Nilai 5⁰ adalah ...","1","0","5","tidak terdefinisi"],["Akar-akar x² − 5x + 6 = 0 adalah ...","2 dan 3","1 dan 6","−2 dan −3","2 dan −3"],["Volume tabung berjari-jari 7 cm dan tinggi 10 cm (π = 22/7) adalah ...","1.540 cm³","440 cm³","154 cm³","3.080 cm³"],["Luas permukaan bola berjari-jari r adalah ...","4πr²","πr²","2πr²","(4/3)πr³"],["Median dari data 3, 5, 7, 9, 11 adalah ...","7","5","9","6"]],
+      ipa: [["Rumus hukum Ohm adalah ...","V = I × R","V = I / R","I = V × R","R = V × I"],["Satuan kuat arus listrik adalah ...","Ampere","Volt","Ohm","Watt"],["Pada rangkaian seri, kuat arus di setiap titik ...","sama besar","berbeda","terbagi","nol"],["Materi genetik yang membawa sifat keturunan adalah ...","DNA","Lisosom","Vakuola","Membran sel"],["Contoh bioteknologi modern adalah ...","Kloning","Pembuatan tempe","Pembuatan tape","Pembuatan kecap"],["Pemanasan global disebabkan meningkatnya gas ...","karbon dioksida","oksigen","nitrogen","helium"],["Partikel bermuatan positif dalam atom adalah ...","Proton","Elektron","Neutron","Foton"],["Rumus kimia air adalah ...","H₂O","CO₂","O₂","NaCl"],["Bulan purnama terjadi ketika ...","Bumi berada di antara Matahari dan Bulan","Bulan berada di antara Bumi dan Matahari","Matahari berada di antara Bumi dan Bulan","Bulan menutupi Matahari"],["Persilangan Aa × Aa menghasilkan keturunan aa sebesar ...","25%","50%","75%","100%"]],
+      ips: [["Perang Dingin terjadi antara blok ...","Amerika Serikat dan Uni Soviet","Asia dan Eropa","Utara dan Selatan","Timur dan Barat Jerman saja"],["Konferensi Asia Afrika diselenggarakan di ...","Bandung","Jakarta","Surabaya","Yogyakarta"],["Konferensi Asia Afrika pertama diadakan pada tahun ...","1955","1945","1965","1949"],["Belanda mengakui kedaulatan Indonesia melalui ...","Konferensi Meja Bundar","Perjanjian Renville","Perjanjian Linggarjati","Perjanjian Roem-Royen"],["Pemilu pertama di Indonesia diadakan tahun ...","1955","1945","1971","1999"],["Kegiatan menjual barang ke luar negeri disebut ...","Ekspor","Impor","Investasi","Devisa"],["Uang asing yang dimiliki suatu negara disebut ...","Devisa","Pajak","Inflasi","Subsidi"],["Kenaikan harga barang secara umum dan terus-menerus disebut ...","Inflasi","Deflasi","Resesi","Devaluasi"],["Dampak negatif globalisasi bagi remaja adalah ...","Gaya hidup konsumtif","Akses informasi","Kemajuan teknologi","Peluang kerja"],["Organisasi internasional yang berdiri tahun 1945 adalah ...","PBB","ASEAN","Uni Eropa","OPEC"]],
+      eng: [["I have lived here ... 2015.","since","for","ago","during"],["She has worked here ... five years.","for","since","at","in"],["The book ... by many students.","is read","reads","read","is reading"],["If you study hard, you ... the exam.","will pass","passed","would pass","pass"],["He said that he ... tired.","was","is","will be","be"],["Which word is a noun?","happiness","happy","happily","happen"],["Look out! adalah ungkapan untuk ...","warning","thanks","apology","greeting"],["Kata however artinya ...","akan tetapi","oleh karena itu","dan","jadi"],["The teacher asked us ... quiet.","to be","be","being","been"],["Dita goes to the library every Friday to read novels. What does Dita do on Friday?","She reads novels at the library.","She plays football.","She cooks.","She sleeps all day."]]
+    },
+    10: {
+      mat: [["2⁴ × 2⁻² = ...","4","8","16","1/4"],["²log 8 = ...","3","4","2","8"],["Akar-akar x² − 7x + 12 = 0 adalah ...","3 dan 4","2 dan 6","1 dan 12","−3 dan −4"],["Jika f(x) = 2x + 3, maka f(4) = ...","11","9","14","10"],["sin 30° = ...","1/2","√3/2","1","√2/2"],["cos 60° = ...","1/2","0","√3/2","1"],["Penyelesaian 2x − 4 > 6 adalah ...","x > 5","x < 5","x > 1","x > 10"],["Nilai |−7| adalah ...","7","−7","0","14"],["Rata-rata dari 4, 6, 8, 10, 12 adalah ...","8","6","10","40"],["Diskriminan x² + 4x + 4 = 0 adalah ...","0","4","16","−4"]],
+      ipa: [["Besaran yang memiliki nilai dan arah disebut besaran ...","vektor","skalar","pokok","turunan"],["Satuan kecepatan dalam SI adalah ...","m/s","m/s²","km","kg"],["Hukum kekekalan energi menyatakan bahwa energi ...","tidak dapat diciptakan atau dimusnahkan","dapat dimusnahkan","selalu bertambah","selalu berkurang"],["Rumus energi kinetik adalah ...","½ m v²","m g h","m a","m v"],["Nomor atom menyatakan jumlah ...","proton","neutron","elektron valensi","nukleon"],["Ikatan yang terbentuk dari pemakaian bersama pasangan elektron adalah ikatan ...","kovalen","ion","logam","hidrogen"],["Unsur dalam satu golongan pada tabel periodik memiliki sifat yang ...","mirip","berlawanan","acak","sama persis"],["Organel penghasil energi (ATP) pada sel adalah ...","Mitokondria","Ribosom","Lisosom","Badan Golgi"],["Kingdom yang sel-selnya tidak memiliki membran inti adalah ...","Monera","Fungi","Plantae","Animalia"],["Contoh keanekaragaman hayati tingkat gen adalah ...","Variasi warna bunga mawar","Hutan dan sawah","Kucing dan anjing","Sungai dan danau"]],
+      ips: [["Ilmu yang mempelajari interaksi sosial masyarakat adalah ...","Sosiologi","Geografi","Ekonomi","Sejarah"],["Peta yang menggambarkan bentuk permukaan bumi dengan garis kontur adalah peta ...","topografi","tematik","wilayah politik","navigasi laut"],["Kelangkaan terjadi karena ...","kebutuhan tidak terbatas, sumber daya terbatas","uang terlalu banyak","barang berlimpah","harga turun"],["Zaman Hindu-Buddha di Indonesia dimulai sekitar abad ke-...","4 Masehi","10 Masehi","16 Masehi","1 Masehi"],["Prasasti Yupa merupakan peninggalan kerajaan ...","Kutai","Tarumanegara","Sriwijaya","Mataram"],["Lapisan bumi paling luar disebut ...","Kerak bumi","Mantel","Inti luar","Inti dalam"],["Perilaku yang melanggar norma sosial disebut ...","Penyimpangan sosial","Sosialisasi","Mobilitas","Integrasi"],["PDB pendekatan pengeluaran: Y = C + I + G + ...","(X − M)","T","S","Q"],["Pasar dengan satu penjual disebut ...","Monopoli","Oligopoli","Persaingan sempurna","Monopsoni"],["Indonesia berada di pertemuan lempeng Eurasia, Indo-Australia, dan ...","Pasifik","Afrika","Antartika","Amerika"]],
+      eng: [["The purpose of a recount text is to ...","retell past events","describe a place","persuade readers","give instructions"],["Which one is a narrative text?","Cinderella","A weather forecast","A shopping list","A user manual"],["I am going to visit Bali next week. This sentence expresses ...","a plan","a past habit","a general fact","a regret"],["If she had studied harder, she ... the test.","would have passed","will pass","would pass","has passed"],["Could you lend me your pen? This is a ...","polite request","command","complaint","prohibition"],["A synonym of important is ...","essential","trivial","minor","useless"],["Generic structure of a descriptive text: identification and ...","description","orientation","complication","resolution"],["He is ... honest man.","an","a","the","some"],["Despite the rain, we went out. Despite shows ...","contrast","cause","purpose","addition"],["No smoking is a ...","prohibition sign","invitation","greeting","offer"]]
+    },
+    11: {
+      mat: [["Turunan dari f(x) = x³ adalah ...","3x²","x²","3x","x⁴/4"],["Turunan dari f(x) = 5x² + 3x adalah ...","10x + 3","5x + 3","10x² + 3","10x"],["lim (x→2) (x² − 4)/(x − 2) = ...","4","2","0","tidak ada"],["Suku ke-5 barisan aritmetika dengan a = 3 dan b = 4 adalah ...","19","23","20","16"],["Jumlah tak hingga deret 8 + 4 + 2 + ... adalah ...","16","12","10","32"],["Determinan matriks [[2, 3], [1, 4]] adalah ...","5","11","8","6"],["Banyak susunan 3 huruf berbeda dari A, B, C adalah ...","6","3","9","27"],["Nilai C(5, 2) adalah ...","10","20","5","7"],["Peluang muncul mata dadu genap pada satu dadu adalah ...","1/2","1/3","1/6","2/3"],["sin 90° = ...","1","0","1/2","−1"]],
+      ipa: [["Rumus gerak lurus beraturan adalah ...","s = v × t","s = ½ a t²","v = a × t","F = m × a"],["Percepatan gravitasi bumi kira-kira ...","9,8 m/s²","98 m/s²","0,98 m/s²","1,8 m/s²"],["Usaha dirumuskan W = ...","F × s","F / s","m × v","s / t"],["Tekanan hidrostatis dirumuskan P = ...","ρ × g × h","m × g","F × A","ρ × V"],["Larutan dengan pH kurang dari 7 bersifat ...","asam","basa","netral","garam"],["Rumus kimia asam klorida adalah ...","HCl","NaOH","H₂SO₄","NaCl"],["Satu mol zat mengandung partikel sebanyak ...","6,02 × 10²³","6,02 × 10²²","3,01 × 10²³","1 × 10²³"],["Sistem yang menghasilkan hormon adalah sistem ...","endokrin","saraf","ekskresi","pencernaan"],["Bagian otak yang mengatur keseimbangan tubuh adalah ...","Otak kecil","Otak besar","Batang otak","Talamus"],["Hormon insulin dihasilkan oleh ...","Pankreas","Hati","Ginjal","Lambung"]],
+      ips: [["VOC didirikan pada tahun ...","1602","1596","1799","1811"],["Perang Padri terjadi di daerah ...","Sumatra Barat","Jawa Tengah","Maluku","Aceh"],["Trilogi Politik Etis: irigasi, emigrasi, dan ...","edukasi","ekspor","ekonomi","elektrifikasi"],["Lapisan atmosfer tempat terjadinya cuaca adalah ...","Troposfer","Stratosfer","Mesosfer","Termosfer"],["Indonesia dilalui jalur gunung api ...","Sirkum Pasifik dan Sirkum Mediterania","Sirkum Atlantik","Sirkum Arktik","Sirkum Hindia"],["PDB adalah total nilai ... suatu negara dalam periode tertentu.","barang dan jasa akhir","uang beredar","utang","pajak"],["Kebijakan moneter dijalankan oleh ...","Bank Indonesia","Kementerian Keuangan","DPR","Kejaksaan"],["Konflik sosial dapat disebabkan oleh ...","perbedaan kepentingan","persamaan tujuan","kerja sama","solidaritas"],["Kelompok yang anggotanya saling mengenal dekat disebut kelompok ...","primer","sekunder","formal","referensi"],["Mata uang bersama Uni Eropa adalah ...","Euro","Poundsterling","Dolar","Franc"]],
+      eng: [["Analytical exposition text bertujuan untuk ...","persuade the reader","tell a story","describe a place","give instructions"],["I think we should ... digunakan untuk ...","giving opinion","asking directions","refusing","thanking"],["Bentuk pasif dari They built the bridge in 2010 adalah ...","The bridge was built in 2010.","The bridge is built in 2010.","The bridge built in 2010.","The bridge has built in 2010."],["She said, 'I am tired.' → She said that she ... tired.","was","is","will be","were"],["I wish I were a bird. Kalimat ini menyatakan ...","a wish","a fact","a past event","a habit"],["Kata therefore menunjukkan hubungan ...","akibat","pertentangan","contoh","urutan waktu"],["Struktur hortatory exposition: thesis, arguments, dan ...","recommendation","resolution","coda","orientation"],["The number of students ... increasing.","is","are","were","have been"],["She is not only smart ... kind.","but also","and","or","than"],["A synonym of reduce is ...","decrease","increase","expand","add"]]
+    },
+    12: {
+      mat: [["∫ 2x dx = ...","x² + C","2x² + C","x + C","2 + C"],["∫ 3x² dx = ...","x³ + C","3x³ + C","6x + C","x² + C"],["Turunan dari sin x adalah ...","cos x","−cos x","−sin x","tan x"],["Turunan dari f(x) = (2x + 1)³ adalah ...","6(2x + 1)²","3(2x + 1)²","2(2x + 1)²","(2x + 1)²"],["Nilai maksimum f(x) = −x² + 4x adalah ...","4","2","8","0"],["lim (x→∞) (3x + 1)/(x + 2) = ...","3","1","1/2","∞"],["Untuk kejadian saling lepas, P(A ∪ B) = ...","P(A) + P(B)","P(A) × P(B)","P(A) − P(B)","P(A) / P(B)"],["Banyak susunan huruf pada kata KAKI adalah ...","12","24","6","4"],["Luas daerah di bawah kurva y = x dari x = 0 sampai x = 4 adalah ...","8","16","4","12"],["∫ dari 0 sampai 2 (3 dx) = ...","6","3","2","5"]],
+      ipa: [["Menurut hukum Coulomb, gaya antara dua muatan ...","berbanding terbalik dengan kuadrat jarak","berbanding lurus dengan jarak","tidak bergantung jarak","sebanding dengan akar jarak"],["Satuan medan magnet dalam SI adalah ...","Tesla","Coulomb","Farad","Henry"],["Efek fotolistrik menunjukkan bahwa cahaya bersifat ...","partikel (foton)","hanya gelombang","bunyi","listrik statis"],["Reaksi fisi adalah reaksi ...","pembelahan inti berat","penggabungan inti ringan","pembakaran","pelarutan"],["Bilangan oksidasi O dalam H₂O adalah ...","−2","+2","0","−1"],["Contoh polimer alam adalah ...","Protein","Nilon","PVC","Teflon"],["Reaksi esterifikasi menghasilkan ...","ester dan air","aldehida","amina","garam saja"],["Sintesis protein terjadi di ...","Ribosom","Lisosom","Vakuola","Kloroplas"],["Pelepasan energi dari glukosa terjadi pada proses ...","respirasi sel","fotosintesis","transkripsi","osmosis"],["Golongan darah AB memiliki antigen ...","A dan B","hanya A","hanya B","tidak ada"]],
+      ips: [["Perang Dunia II berakhir pada tahun ...","1945","1939","1918","1950"],["Konferensi pertama Gerakan Non-Blok diadakan di ...","Beograd","Bandung","Kairo","New Delhi"],["Orde Baru dipimpin oleh Presiden ...","Soeharto","Soekarno","Habibie","Abdurrahman Wahid"],["Reformasi 1998 ditandai mundurnya Presiden ...","Soeharto","Soekarno","Habibie","Megawati"],["UUD 1945 telah diamandemen sebanyak ... kali.","4","2","3","5"],["Indeks yang mengukur kesehatan, pendidikan, dan pendapatan penduduk adalah ...","IPM","PDB","Inflasi","APBN"],["Kawasan perdagangan bebas ASEAN disebut ...","AFTA","NAFTA","APEC","MEE"],["Perubahan sosial yang berlangsung cepat disebut ...","revolusi","evolusi","akulturasi","asimilasi"],["Percampuran budaya tanpa menghilangkan ciri asli disebut ...","akulturasi","asimilasi","difusi","diskriminasi"],["Singkatan Sistem Informasi Geografis adalah ...","SIG","GPS","BMKG","DAS"]],
+      eng: [["A news item text bertujuan untuk ...","inform readers about events","entertain readers","persuade readers","give instructions"],["If I were you, I would study harder. Ini adalah conditional ...","second","first","third","zero"],["She has been waiting for two hours. Tense yang digunakan adalah ...","present perfect continuous","past perfect","present continuous","simple past"],["The book ... I borrowed was interesting.","which","who","whom","whose"],["The man who lives next door is a doctor. Kata who adalah ...","relative pronoun","article","adverb","preposition"],["Idiom break a leg artinya ...","good luck","be careful","run fast","feel sad"],["Not until he arrived ... the truth.","did we know","we knew","we know","had we know"],["Notwithstanding paling dekat artinya dengan ...","in spite of","because of","according to","due to"],["The ... of the report is to explain the results.","purpose","purposeful","purposely","purposing"],["She suggested that he ... a doctor.","see","sees","saw","seeing"]]
+    }
+  };
+
+  // Akun Bawaan & Generator
+  var ALFA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  function buatKode() {
+    var a = new Uint32Array(7); crypto.getRandomValues(a);
+    var s = "";
+    for (var i = 0; i < 7; i++) s += ALFA[a[i] % ALFA.length];
+    return s;
+  }
+
+  var akun = load("akun", {});
+  // Inisialisasi akun contoh
+  if (!has(akun, "tamu")) akun.tamu = { nama: "tamu", kode: "AGHZ4DX" };
+  if (!has(akun, "agha")) akun.agha = { nama: "Agha", kode: "AGHZ4DX" };
+
+  var user = null, userKey = "", best = {}, baru = null;
+  var jenjang = "SD", kelas = 1, sesi = null;
+
+  var layar = ["s-login", "s-menu", "s-quiz", "s-boss", "s-result"];
+  function show(id) {
+    layar.forEach(function (x) { $(x).hidden = (x !== id); });
+    if (id !== "s-quiz" && id !== "s-boss") document.body.removeAttribute("data-m");
+    window.scrollTo(0, 0);
+  }
+
+  function setTab(t) {
+    var m = t === "masuk";
+    $("tab-masuk").setAttribute("aria-selected", m);
+    $("tab-daftar").setAttribute("aria-selected", !m);
+    $("p-masuk").hidden = !m; $("p-daftar").hidden = m;
+    msg("msg-login", ""); msg("msg-reg", "");
+    $("in-nama").classList.remove("input-error");
+    $("in-kode").classList.remove("input-error");
+    $("reg-nama").classList.remove("input-error");
+  }
+  $("tab-masuk").onclick = function () { setTab("masuk"); };
+  $("tab-daftar").onclick = function () { setTab("daftar"); };
+
+  // ==========================================
+  // LOGIKA LOGIN & VALIDASI ERROR
+  // ==========================================
+  function login() {
+    var inputNama = $("in-nama");
+    var inputKode = $("in-kode");
+    
+    inputNama.classList.remove("input-error");
+    inputKode.classList.remove("input-error");
+
+    var namaMentah = inputNama.value.trim();
+    var kodeMentah = inputKode.value.trim();
+
+    // 1. Validasi Kolom Kosong
+    if (!namaMentah) {
+      inputNama.classList.add("input-error");
+      msg("msg-login", "Silakan masukkan nama panggilan Anda.", "err");
+      inputNama.focus();
+      return;
+    }
+    if (!kodeMentah) {
+      inputKode.classList.add("input-error");
+      msg("msg-login", "Silakan masukkan kode akses.", "err");
+      inputKode.focus();
+      return;
+    }
+
+    var key = namaMentah.toLowerCase();
+    var kodeBersih = bersihkanKode(kodeMentah);
+
+    // 2. Cek Keberadaan Akun
+    if (!has(akun, key)) {
+      inputNama.classList.add("input-error");
+      msg("msg-login", "Nama \"" + namaMentah + "\" belum terdaftar. Silakan pilih tab 'Daftar' terlebih dahulu.", "err");
+      return;
+    }
+
+    // 3. Cek Kesesuaian Kode
+    var userAcc = akun[key];
+    if (userAcc.kode !== kodeBersih) {
+      inputKode.classList.add("input-error");
+      msg("msg-login", "Kode akses salah untuk nama ini! Cek kembali huruf dan angka.", "err");
+      return;
+    }
+
+    // Berhasil Masuk
+    msg("msg-login", "Login berhasil! Memuat wahana...", "ok");
+    setTimeout(function () {
+      masukAkun(userAcc);
+    }, 400);
+  }
+
+  $("btn-masuk").onclick = login;
+  ["in-nama", "in-kode"].forEach(function (id) {
+    $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") login(); });
+  });
+
+  // ==========================================
+  // LOGIKA REGISTER & ERROR
+  // ==========================================
+  $("btn-daftar").onclick = function () {
+    var regInput = $("reg-nama");
+    regInput.classList.remove("input-error");
+    var n = regInput.value.trim();
+
+    if (n.length < 2) { 
+      regInput.classList.add("input-error");
+      msg("msg-reg", "Nama panggilan minimal harus 2 karakter.", "err"); 
+      regInput.focus();
+      return; 
+    }
+
+    var key = n.toLowerCase();
+    if (has(akun, key)) { 
+      regInput.classList.add("input-error");
+      msg("msg-reg", "Nama \"" + n + "\" sudah dipakai. Gunakan nama panggilan lain.", "err"); 
+      return; 
+    }
+
+    var kode = buatKode();
+    akun[key] = { nama: n, kode: kode };
+    save("akun", akun);
+    baru = akun[key];
+
+    $("kode-baru").textContent = kode;
+    $("hasil-kode").hidden = false;
+    msg("msg-reg", "Akun berhasil dibuat! Silakan simpan kodenya.", "ok");
+  };
+
+  $("btn-salin").onclick = function () {
+    if (!baru) return;
+    var b = this;
+    function tanda(t) { 
+      var lama = "Salin Kode"; 
+      b.textContent = t; 
+      setTimeout(function () { b.textContent = lama; }, 1500); 
+    }
+    try { 
+      navigator.clipboard.writeText(baru.kode).then(function () { tanda("Tersalin!"); }, function () { tanda("Salin Manual"); }); 
+    } catch (e) { 
+      tanda("Salin Manual"); 
+    }
+  };
+
+  $("btn-langsung").onclick = function () { 
+    if (baru) masukAkun(baru); 
+  };
+
+  function masukAkun(a) {
+    user = a; 
+    userKey = a.nama.toLowerCase();
+    best = load("best_" + userKey, {});
+    ["in-nama", "in-kode", "reg-nama"].forEach(function (id) { 
+      $(id).value = ""; 
+      $(id).classList.remove("input-error");
+    });
+    $("hasil-kode").hidden = true; 
+    msg("msg-login", ""); 
+    msg("msg-reg", "");
+    setTab("masuk");
+    renderMenu(); 
+    show("s-menu");
+  }
+
+  $("btn-logout").onclick = function () { 
+    user = null; sesi = null; baru = null; 
+    show("s-login"); 
+  };
+
+  // Daftar Penghargaan
+  var LENCANA = [
+    { id: "bintang3", nama: "Bintang Emas", desc: "Raih 3 bintang dalam satu quiz", ikon: "🌟",
+      cek: function (s) { return hitungBintang(s.benar) === 3; } },
+    { id: "sempurna", nama: "Nilai Sempurna", desc: "Jawab semua soal dengan benar", ikon: "🏆",
+      cek: function (s) { return s.benar === s.soal.length; } },
+    { id: "kombo5", nama: "Raja Kombo", desc: "Capai kombo jawaban benar 5 kali berturut-turut", ikon: "🔥",
+      cek: function (s) { return s.maxStreak >= 5; } },
+    { id: "cepat", nama: "Kilat Galaksi", desc: "Raih skor di atas 90 dalam satu quiz", ikon: "⚡",
+      cek: function (s) { return s.skor >= 90; } },
+    { id: "semuamapel", nama: "Penjelajah Galaksi", desc: "Coba semua mata pelajaran di kelas yang sama", ikon: "🚀",
+      cek: function (s, b) { return URUT.every(function (m) { return has(b, kelas + "-" + m); }); } },
+    { id: "penakluk-bos", nama: "Penakluk Bos", desc: "Kalahkan Bos Galaksi", ikon: "🐉",
+      cek: function (s) { return !!s.bosMenang; } }
+  ];
+
+  // Menu Interaktif
+  function renderMenu() {
+    $("nm").textContent = user.nama;
+    var sj = $("seg-jenjang"); sj.textContent = "";
+    Object.keys(JENJANG).forEach(function (j) {
+      var b = buatTombol("seg-btn", j);
+      b.setAttribute("aria-pressed", j === jenjang);
+      b.onclick = function () { jenjang = j; kelas = JENJANG[j][0]; renderMenu(); };
+      sj.appendChild(b);
+    });
+    var sk = $("seg-kelas"); sk.textContent = "";
+    JENJANG[jenjang].forEach(function (k) {
+      var b = buatTombol("seg-btn", "Kelas " + k);
+      b.setAttribute("aria-pressed", k === kelas);
+      b.onclick = function () { kelas = k; renderMenu(); };
+      sk.appendChild(b);
+    });
+    var g = $("mapel-grid"); g.textContent = "";
+    URUT.forEach(function (m) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "card mapel-btn"; b.innerHTML = ART[m];
+      var t = document.createElement("h3"); t.textContent = MAPEL[m];
+      var s = document.createElement("p"); s.className = "muted";
+      var bs = best[kelas + "-" + m];
+      s.textContent = bs ? "Terbaik: " + bs : "Belum dicoba";
+      b.appendChild(t); b.appendChild(s);
+      b.onclick = function () { mulai(m); };
+      g.appendChild(b);
+    });
+    var lg = $("lencana-grid"); lg.textContent = "";
+    var punya = load("lencana_" + userKey, []);
+    LENCANA.forEach(function (l) {
+      var span = document.createElement("span");
+      span.className = "lencana" + (punya.indexOf(l.id) !== -1 ? " aktif" : "");
+      span.title = l.desc;
+      span.textContent = l.ikon + " " + l.nama;
+      lg.appendChild(span);
+    });
+    renderPapan();
+  }
+
+  // ==========================================
+  // PAPAN PERINGKAT (LEADERBOARD)
+  // ==========================================
+  function papanKey() { return kelas + "-" + jenjang; }
+
+  function catatSkorPapan(mapel, skorAkhir) {
+    var papan = load("papan", {});
+    var k = kelas + "|" + mapel;
+    if (!papan[k]) papan[k] = [];
+    var arr = papan[k];
+    var idx = -1;
+    for (var i = 0; i < arr.length; i++) { if (arr[i].nama === user.nama) { idx = i; break; } }
+    if (idx === -1) {
+      arr.push({ nama: user.nama, skor: skorAkhir });
+    } else if (skorAkhir > arr[idx].skor) {
+      arr[idx].skor = skorAkhir;
+    }
+    arr.sort(function (a, b) { return b.skor - a.skor; });
+    papan[k] = arr.slice(0, 20);
+    save("papan", papan);
+    return papan[k];
+  }
+
+  function peringkatUntuk(mapel, skorAkhir) {
+    var papan = load("papan", {});
+    var arr = papan[kelas + "|" + mapel] || [];
+    var pos = 1;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].nama === user.nama) break;
+      if (arr[i].skor > skorAkhir) pos++;
+    }
+    return { pos: pos, total: Math.max(arr.length, pos) };
+  }
+
+  function renderPapan(mapelPilih) {
+    var box = $("papan-list");
+    var papan = load("papan", {});
+    var mapelList = mapelPilih ? [mapelPilih] : URUT;
+    box.textContent = "";
+    var adaData = false;
+    mapelList.forEach(function (m) {
+      var arr = papan[kelas + "|" + m] || [];
+      if (!arr.length) return;
+      adaData = true;
+      var h = document.createElement("h3");
+      h.style.marginTop = "12px";
+      h.textContent = MAPEL[m] + " • Kelas " + kelas;
+      box.appendChild(h);
+      var ul = document.createElement("ol");
+      ul.style.margin = "8px 0 0"; ul.style.paddingLeft = "22px";
+      arr.slice(0, 5).forEach(function (row) {
+        var li = document.createElement("li");
+        li.style.marginBottom = "4px";
+        var kuat = document.createElement("b");
+        kuat.textContent = row.nama + (row.nama === user.nama ? " (kamu)" : "");
+        li.appendChild(kuat);
+        li.appendChild(document.createTextNode(" — skor " + row.skor));
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+    });
+    if (!adaData) {
+      var p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "Belum ada data peringkat untuk kelas ini. Kerjakan quiz untuk mulai bersaing!";
+      box.appendChild(p);
+    }
+  }
+  $("btn-refresh-papan").onclick = function () { renderPapan(); };
+
+  // Quiz Engine
+  var tmr = null;
+  var PUJI = [
+    "Hebat, {n}! Jawabanmu benar!", "Selamat, {n}! Kamu pintar sekali!",
+    "Keren! Satu bintang untukmu, {n}!", "Mantap, {n}! Terus semangat!", "Luar biasa! Kamu jagoan, {n}!"
+  ];
+
+  function mulai(m) {
+    var soal = acak(BANK[kelas][m].map(function (q) {
+      return { q: q[0], benar: q[1], opsi: acak(q.slice(1)) };
+    }));
+    sesi = { m: m, soal: soal, i: 0, skor: 0, benar: 0, streak: 0, maxStreak: 0, salah: [],
+             pakai5050: false, kunci: false, detik: kelas <= 3 ? 30 : 20, bosDipakai: false, bosMenang: false };
+    document.body.setAttribute("data-m", m);
+    $("q-art").innerHTML = ART[m];
+    show("s-quiz");
+    tampil();
+  }
+
+  function tampil() {
+    var s = sesi, q = s.soal[s.i];
+    s.kunci = false;
+    $("q-no").textContent = "Soal " + (s.i + 1) + " dari " + s.soal.length;
+    $("q-skor").textContent = "Skor " + s.skor;
+    $("q-streak").textContent = s.streak >= 2 ? "🔥 x" + s.streak : "";
+    $("q-info").textContent = MAPEL[s.m] + " • " + jenjang + " Kelas " + kelas;
+    $("q-text").textContent = q.q;
+    var box = $("q-opts"); box.textContent = "";
+    q.opsi.forEach(function (o, idx) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.dataset.v = o;
+      var h = document.createElement("span"); h.className = "huruf"; h.textContent = "ABCD"[idx];
+      b.appendChild(h); b.appendChild(document.createTextNode(o));
+      b.onclick = function () { jawab(b, o); };
+      box.appendChild(b);
+    });
+    $("fb").hidden = true; $("btn-next").hidden = true;
+    $("btn-5050").disabled = s.pakai5050;
+    mulaiTimer();
+  }
+
+  function mulaiTimer() {
+    clearInterval(tmr);
+    var awal = Date.now(), total = sesi.detik, bar = $("timer-bar");
+    bar.style.width = "100%"; bar.className = "";
+    tmr = setInterval(function () {
+      var sisa = total - (Date.now() - awal) / 1000;
+      if (sisa <= 0) { clearInterval(tmr); bar.style.width = "0%"; jawab(null, null); }
+      else { bar.style.width = (sisa / total * 100) + "%"; bar.className = sisa < 6 ? "low" : ""; }
+    }, 100);
+  }
+
+  function tampilFb(ok, teks, svg) {
+    var f = $("fb");
+    f.className = "fb " + (ok ? "good" : "bad");
+    $("fb-art").innerHTML = svg; $("fb-text").textContent = teks;
+    f.hidden = false;
+  }
+  function luncurRoket() {
+    var r = $("rocket");
+    r.classList.remove("go"); void r.offsetWidth; r.classList.add("go");
+  }
+
+  function jawab(tombol, v) {
+    var s = sesi;
+    if (!s || s.kunci) return;
+    s.kunci = true; clearInterval(tmr);
+    var q = s.soal[s.i], betul = (v === q.benar);
+    document.querySelectorAll(".opt").forEach(function (b) {
+      b.disabled = true;
+      if (b.dataset.v === q.benar) b.classList.add("ok");
+      else if (b === tombol) b.classList.add("no");
+    });
+    if (betul) {
+      s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+      s.benar++; s.skor += 10 + Math.min((s.streak - 1) * 2, 10);
+      var kata = PUJI[Math.floor(Math.random() * PUJI.length)].replace(/\{n\}/g, user.nama);
+      if (s.streak >= 3) kata += " Kombo x" + s.streak + "!";
+      tampilFb(true, kata, ROBOT);
+      bunyi(true);
+    } else {
+      s.streak = 0; s.salah.push(q);
+      tampilFb(false, (v === null ? "Waktu habis! " : "Yah, belum tepat. ") + "Roket diluncurkan! Jawaban yang benar: " + q.benar, ROKET);
+      luncurRoket();
+      bunyi(false);
+    }
+    $("q-skor").textContent = "Skor " + s.skor;
+    $("q-streak").textContent = s.streak >= 2 ? "🔥 x" + s.streak : "";
+    var akhir = s.i === s.soal.length - 1;
+    $("btn-next").textContent = akhir ? "Lihat hasil" : "Lanjut";
+    $("btn-next").hidden = false;
+    $("btn-next").focus();
+  }
+
+  $("btn-next").onclick = function () {
+    if (sesi.i >= sesi.soal.length - 1) hasil(); else { sesi.i++; tampil(); }
+  };
+
+  $("btn-5050").onclick = function () {
+    var s = sesi;
+    if (!s || s.kunci || s.pakai5050) return;
+    s.pakai5050 = true; this.disabled = true;
+    var q = s.soal[s.i], salah = [];
+    document.querySelectorAll(".opt").forEach(function (b) { if (b.dataset.v !== q.benar) salah.push(b); });
+    acak(salah).slice(0, 2).forEach(function (b) { b.disabled = true; b.classList.add("off"); });
+  };
+
+  $("btn-batal").onclick = function () { clearInterval(tmr); sesi = null; renderMenu(); show("s-menu"); };
+
+  function hitungBintang(b) {
+    return b >= 9 ? 3 : b >= 7 ? 2 : b >= 5 ? 1 : 0;
+  }
+
+  function hasil() {
+    clearInterval(tmr);
+    var s = sesi, k = kelas + "-" + s.m, lama = best[k] || 0, rekor = s.skor > lama;
+    if (rekor) { best[k] = s.skor; save("best_" + userKey, best); }
+    catatSkorPapan(s.m, best[k] || s.skor);
+    var b = s.benar;
+    var bintang = hitungBintang(b);
+    $("r-stars").textContent = "⭐".repeat(bintang) + "☆".repeat(3 - bintang);
+    $("r-judul").textContent = b >= 9 ? "Luar biasa, " + user.nama + "!" : b >= 7 ? "Bagus sekali, " + user.nama + "!" :
+      b >= 5 ? "Lumayan, ayo tingkatkan!" : "Jangan menyerah, coba lagi!";
+    $("r-art").innerHTML = b >= 7 ? ROBOT : ROKET;
+    $("r-detail").textContent = "Benar " + b + " dari " + s.soal.length + " • Skor " + s.skor + " • Kombo terbaik x" + s.maxStreak;
+    $("r-best").textContent = rekor ? "Rekor baru untuk " + MAPEL[s.m] + " kelas " + kelas + "!" : "Skor terbaikmu: " + best[k];
+
+    var rank = peringkatUntuk(s.m, best[k] || s.skor);
+    $("r-peringkat").textContent = "Peringkatmu di kelas " + kelas + " untuk " + MAPEL[s.m] + ": #" + rank.pos + " dari " + rank.total + " pemain";
+
+    var list = $("r-list"); list.textContent = "";
+    s.salah.forEach(function (q) {
+      var li = document.createElement("li");
+      li.appendChild(document.createTextNode(q.q + " "));
+      var jb = document.createElement("b"); jb.textContent = "Jawaban: " + q.benar;
+      li.appendChild(jb); list.appendChild(li);
+    });
+    $("r-review").hidden = s.salah.length === 0;
+
+    // Ajakan lawan bos jika skor di bawah 80 dan belum pernah dipakai di sesi ini
+    $("r-boss-ajakan").hidden = !(s.skor < 80 && !s.bosDipakai);
+
+    // Cek penghargaan baru
+    var lencanaUser = load("lencana_" + userKey, []);
+    var baruDapat = [];
+    LENCANA.forEach(function (l) {
+      if (lencanaUser.indexOf(l.id) === -1 && l.cek(s, best)) {
+        lencanaUser.push(l.id);
+        baruDapat.push(l);
+      }
+    });
+    if (baruDapat.length) save("lencana_" + userKey, lencanaUser);
+    var bb = $("r-badge-baru"); bb.textContent = "";
+    baruDapat.forEach(function (l) {
+      var d = document.createElement("div"); d.className = "badge-baru";
+      var ik = document.createElement("span"); ik.className = "ikon"; ik.textContent = l.ikon;
+      var tx = document.createElement("div");
+      var judul = document.createElement("b"); judul.textContent = "Penghargaan baru: " + l.nama;
+      var ket = document.createElement("span"); ket.className = "muted"; ket.textContent = l.desc;
+      tx.appendChild(judul); tx.appendChild(document.createElement("br")); tx.appendChild(ket);
+      d.appendChild(ik); d.appendChild(tx);
+      bb.appendChild(d);
+    });
+    if (baruDapat.length) bunyiPenghargaan();
+
+    show("s-result");
+  }
+  $("btn-lagi").onclick = function () { mulai(sesi.m); };
+  $("btn-menu").onclick = function () { renderMenu(); show("s-menu"); };
+
+  // ==========================================
+  // MODE LAWAN BOS (BOSS BATTLE)
+  // Muncul saat skor quiz < 80. 5 soal tambahan dari mapel yang sama;
+  // tiap jawaban benar menambah nilai ke skor & rekor pemain.
+  // ==========================================
+  var boss = null;
+  var BOSS_HP_TOTAL = 5;
+  var BOSS_POIN = 6; // poin tambahan tiap jawaban benar saat melawan bos
+
+  function acakSoalBos(mapel, jumlah, kecualikan) {
+    var semua = BANK[kelas][mapel];
+    var dipakai = acak(semua.slice());
+    return dipakai.slice(0, jumlah).map(function (q) {
+      return { q: q[0], benar: q[1], opsi: acak(q.slice(1)) };
+    });
+  }
+
+  $("btn-lawan-bos").onclick = function () {
+    var s = sesi;
+    s.bosDipakai = true;
+    boss = { m: s.m, soal: acakSoalBos(s.m, BOSS_HP_TOTAL), i: 0, hp: BOSS_HP_TOTAL, kunci: false, tambahan: 0 };
+    document.body.setAttribute("data-m", s.m);
+    $("boss-art").innerHTML = BOSS;
+    $("boss-q-art").innerHTML = ART[s.m];
+    $("boss-judul").textContent = "Bos Galaksi Muncul!";
+    $("boss-sub").textContent = "Jawab benar 5 soal " + MAPEL[s.m] + " untuk mengalahkan bos. Setiap jawaban benar menambah " + BOSS_POIN + " poin ke skormu.";
+    show("s-boss");
+    tampilBoss();
+  };
+
+  function tampilBoss() {
+    var q = boss.soal[boss.i];
+    boss.kunci = false;
+    $("boss-no").textContent = "Soal bos " + (boss.i + 1) + " dari " + boss.soal.length;
+    $("boss-skor").textContent = "Tambahan +" + boss.tambahan;
+    $("boss-hp").style.width = (boss.hp / BOSS_HP_TOTAL * 100) + "%";
+    $("boss-q-info").textContent = MAPEL[boss.m] + " • Melawan Bos Galaksi";
+    $("boss-q-text").textContent = q.q;
+    var box = $("boss-q-opts"); box.textContent = "";
+    q.opsi.forEach(function (o, idx) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.dataset.v = o;
+      var h = document.createElement("span"); h.className = "huruf"; h.textContent = "ABCD"[idx];
+      b.appendChild(h); b.appendChild(document.createTextNode(o));
+      b.onclick = function () { jawabBoss(b, o); };
+      box.appendChild(b);
+    });
+    $("boss-fb").hidden = true; $("btn-boss-next").hidden = true;
+  }
+
+  function jawabBoss(tombol, v) {
+    if (!boss || boss.kunci) return;
+    boss.kunci = true;
+    var q = boss.soal[boss.i], betul = (v === q.benar);
+    document.querySelectorAll("#boss-q-opts .opt").forEach(function (b) {
+      b.disabled = true;
+      if (b.dataset.v === q.benar) b.classList.add("ok");
+      else if (b === tombol) b.classList.add("no");
+    });
+    if (betul) {
+      boss.hp--; boss.tambahan += BOSS_POIN;
+      var f = $("boss-fb");
+      f.className = "fb good"; $("boss-fb-art").innerHTML = ROBOT;
+      $("boss-fb-text").textContent = "Kena telak! Bos kehilangan tenaga. +" + BOSS_POIN + " poin!";
+      f.hidden = false;
+      bunyi(true);
+    } else {
+      var f2 = $("boss-fb");
+      f2.className = "fb bad"; $("boss-fb-art").innerHTML = BOSS;
+      f2.querySelector ? null : null;
+      $("boss-fb-text").textContent = "Meleset! Jawaban yang benar: " + q.benar;
+      f2.hidden = false;
+      bunyi(false);
+    }
+    $("boss-skor").textContent = "Tambahan +" + boss.tambahan;
+    $("boss-hp").style.width = (Math.max(boss.hp, 0) / BOSS_HP_TOTAL * 100) + "%";
+    var akhir = boss.i === boss.soal.length - 1;
+    $("btn-boss-next").textContent = akhir ? "Selesai" : "Lanjut";
+    $("btn-boss-next").hidden = false;
+    $("btn-boss-next").focus();
+  }
+
+  $("btn-boss-next").onclick = function () {
+    if (boss.i >= boss.soal.length - 1) selesaiBoss(); else { boss.i++; tampilBoss(); }
+  };
+  $("btn-boss-batal").onclick = function () { selesaiBoss(true); };
+
+  function selesaiBoss(kabur) {
+    var s = sesi;
+    var tambahan = kabur ? 0 : boss.tambahan;
+    s.skor += tambahan;
+    s.bosMenang = !kabur && boss.hp <= 0;
+    var k = kelas + "-" + s.m, lamaBest = best[k] || 0;
+    var rekor = s.skor > lamaBest;
+    if (rekor) { best[k] = s.skor; save("best_" + userKey, best); }
+    catatSkorPapan(s.m, best[k] || s.skor);
+    boss = null;
+    if (tambahan > 0) bunyiPenghargaan();
+    hasilSetelahBoss(tambahan, rekor, k);
+  }
+
+  function hasilSetelahBoss(tambahan, rekor, k) {
+    var s = sesi;
+    var b = s.benar;
+    var bintang = hitungBintang(b);
+    $("r-stars").textContent = "⭐".repeat(bintang) + "☆".repeat(3 - bintang);
+    $("r-judul").textContent = s.bosMenang ? "Bos berhasil dikalahkan, " + user.nama + "!" : "Pertarungan bos selesai!";
+    $("r-art").innerHTML = s.bosMenang ? ROBOT : ROKET;
+    $("r-detail").textContent = "Skor akhir " + s.skor + " (tambahan dari bos: +" + tambahan + ")";
+    $("r-best").textContent = rekor ? "Rekor baru untuk " + MAPEL[s.m] + " kelas " + kelas + "!" : "Skor terbaikmu: " + best[k];
+    var rank = peringkatUntuk(s.m, best[k] || s.skor);
+    $("r-peringkat").textContent = "Peringkatmu di kelas " + kelas + " untuk " + MAPEL[s.m] + ": #" + rank.pos + " dari " + rank.total + " pemain";
+    $("r-boss-ajakan").hidden = true;
+
+    var lencanaUser = load("lencana_" + userKey, []);
+    var baruDapat = [];
+    LENCANA.forEach(function (l) {
+      if (lencanaUser.indexOf(l.id) === -1 && l.cek(s, best)) {
+        lencanaUser.push(l.id);
+        baruDapat.push(l);
+      }
+    });
+    if (baruDapat.length) save("lencana_" + userKey, lencanaUser);
+    var bb = $("r-badge-baru"); bb.textContent = "";
+    baruDapat.forEach(function (l) {
+      var d = document.createElement("div"); d.className = "badge-baru";
+      var ik = document.createElement("span"); ik.className = "ikon"; ik.textContent = l.ikon;
+      var tx = document.createElement("div");
+      var judul = document.createElement("b"); judul.textContent = "Penghargaan baru: " + l.nama;
+      var ket = document.createElement("span"); ket.className = "muted"; ket.textContent = l.desc;
+      tx.appendChild(judul); tx.appendChild(document.createElement("br")); tx.appendChild(ket);
+      d.appendChild(ik); d.appendChild(tx);
+      bb.appendChild(d);
+    });
+
+    show("s-result");
+  }
+
+  // Suara Melalui Web Audio API
+  var suaraOn = true, ac = null;
+  function bunyi(ok) {
+    if (!suaraOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var t = ac.currentTime;
+      (ok ? [523, 659, 784] : [220, 165]).forEach(function (f, i) {
+        var o = ac.createOscillator(), g = ac.createGain(), mulai0 = t + i * 0.12;
+        o.type = ok ? "sine" : "sawtooth"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, mulai0);
+        g.gain.exponentialRampToValueAtTime(2.30, mulai0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(2.0001, mulai0 + 0.2);
+        o.connect(g); g.connect(ac.destination);
+        o.start(mulai0); o.stop(mulai0 + 0.22);
+      });
+    } catch (e) {}
+  }
+
+  // Suara klik tombol (dipicu untuk semua tombol di halaman)
+  function bunyiKlik() {
+    if (!suaraOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var t = ac.currentTime;
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = "square"; o.frequency.value = 440;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(2.30, t + 0.308);
+      g.gain.exponentialRampToValueAtTime(1.9001, t + 0.29);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + 0.35);
+    } catch (e) {}
+  }
+  // Delegasi klik: setiap tombol yang ditekan akan berbunyi, tanpa perlu mengubah tiap handler
+  document.addEventListener("click", function (e) {
+    var tgt = e.target.closest ? e.target.closest("button") : null;
+    if (tgt) bunyiKlik();
+  }, true);
+
+  // Suara penghargaan/fanfare saat mendapat lencana baru
+  function bunyiPenghargaan() {
+    if (!suaraOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var t = ac.currentTime;
+      [523, 659, 784, 1046].forEach(function (f, i) {
+        var o = ac.createOscillator(), g = ac.createGain(), mulai0 = t + i * 0.1;
+        o.type = "triangle"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, mulai0);
+        g.gain.exponentialRampToValueAtTime(2.35, mulai0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(1.0001, mulai0 + 0.25);
+        o.connect(g); g.connect(ac.destination);
+        o.start(mulai0); o.stop(mulai0 + 0.27);
+      });
+    } catch (e) {}
+  }
+
+  $("btn-suara").onclick = function () {
+    suaraOn = !suaraOn;
+    this.textContent = "Suara: " + (suaraOn ? "Nyala" : "Mati");
+  };
+})();
+</script>
+</body>
+</html>
